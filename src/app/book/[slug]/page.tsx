@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, use, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function BookingFlowPage({ params }: { params: Promise<{ slug: string }> }) {
+function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -733,5 +733,13 @@ export default function BookingFlowPage({ params }: { params: Promise<{ slug: st
 
       <Footer />
     </div>
+  );
+}
+
+export default function BookingFlowPage({ params }: { params: Promise<{ slug: string }> }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm font-semibold">Loading booking reservation...</div>}>
+      <BookingFlowContent params={params} />
+    </Suspense>
   );
 }
