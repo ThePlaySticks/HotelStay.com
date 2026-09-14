@@ -28,7 +28,7 @@ export function AdminSidebar() {
 
   // Find active tenant hotel
   const currentHotel =
-    hotels.find((h) => h.id === currentPersona.hotelId) || hotels[0];
+    hotels.find((h) => h.id === currentPersona.hotelId) || hotels[0] || null;
 
   const NAV_ITEMS = [
     { href: '/hotel-admin', label: 'Overview Dashboard', icon: LayoutDashboard },
@@ -61,16 +61,17 @@ export function AdminSidebar() {
               <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">
                 Active Hotel Tenant
               </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${currentHotel ? 'bg-emerald-500 animate-pulse' : 'bg-stone-600'}`} />
             </div>
             <div className="font-editorial text-sm font-bold text-white mt-1 truncate">
-              {currentHotel.name}
+              {currentHotel ? currentHotel.name : 'No Hotel Onboarded'}
             </div>
             <div className="text-[11px] text-[#C5A880] flex items-center gap-1 mt-0.5">
-              <span>{currentHotel.location.city}, {currentHotel.location.country}</span>
+              <span>{currentHotel ? `${currentHotel.location.city}, ${currentHotel.location.country}` : 'Register your property to begin'}</span>
             </div>
 
             {/* Tenant Switcher Pill */}
+            {hotels.length > 1 && (
             <div className="mt-2.5 pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px]">
               <span className="text-stone-400">Switch Tenant:</span>
               <button
@@ -87,6 +88,7 @@ export function AdminSidebar() {
                 {currentPersona.hotelId === 'hotel-azure' ? '→ Serenita' : '→ Azure'}
               </button>
             </div>
+            )}
           </div>
         </div>
 

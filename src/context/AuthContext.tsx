@@ -19,7 +19,6 @@ export const PERSONAS: Persona[] = [
     name: 'Julian Vance',
     email: 'julian.vance@vanceholdings.co.uk',
     role: 'guest',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   {
     id: 'persona-azure-admin',
@@ -28,7 +27,6 @@ export const PERSONAS: Persona[] = [
     role: 'hotel_manager',
     hotelId: 'hotel-azure',
     hotelName: 'The Azure Riviera Resort & Spa',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
   },
   {
     id: 'persona-serenita-admin',
@@ -37,14 +35,12 @@ export const PERSONAS: Persona[] = [
     role: 'hotel_manager',
     hotelId: 'hotel-serenita',
     hotelName: 'Serenita Coastal Haven & Spa',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
   },
   {
     id: 'persona-super-admin',
     name: 'Elena Rostova (Platform Super Admin)',
     email: 'admin@hotelstay.com',
     role: 'super_admin',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
   },
 ];
 

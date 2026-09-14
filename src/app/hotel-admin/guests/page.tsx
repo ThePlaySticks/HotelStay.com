@@ -12,7 +12,7 @@ export default function GuestsCRMPage() {
   const { hotels } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
   const [guestList] = useState<GuestProfile[]>(
     INITIAL_GUESTS.filter((g) => g.hotelId === currentHotelId)
@@ -31,7 +31,7 @@ export default function GuestsCRMPage() {
             Guest Profiles & Patron History
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Strictly isolated guest profiles and VIP preferences for {currentHotel.name}.
+            Strictly isolated guest profiles and VIP preferences for {currentHotel?.name || 'Sanctuary'}.
           </p>
         </div>
       </div>

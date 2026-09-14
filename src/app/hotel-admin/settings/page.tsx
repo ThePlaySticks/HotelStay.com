@@ -10,17 +10,29 @@ export default function HotelSettingsPage() {
   const { hotels, showToast } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
-  const [hotelName, setHotelName] = useState(currentHotel.name);
-  const [tagline, setTagline] = useState(currentHotel.tagline);
-  const [description, setDescription] = useState(currentHotel.description);
-  const [contactEmail, setContactEmail] = useState(currentHotel.contactEmail);
-  const [contactPhone, setContactPhone] = useState(currentHotel.contactPhone);
-  const [checkInTime, setCheckInTime] = useState(currentHotel.policies.checkInTime);
-  const [checkOutTime, setCheckOutTime] = useState(currentHotel.policies.checkOutTime);
-  const [primaryColor, setPrimaryColor] = useState(currentHotel.brandColors?.primary || '#1E293B');
-  const [accentColor, setAccentColor] = useState(currentHotel.brandColors?.accent || '#C5A880');
+  const [hotelName, setHotelName] = useState(currentHotel?.name || '');
+  const [tagline, setTagline] = useState(currentHotel?.tagline || '');
+  const [description, setDescription] = useState(currentHotel?.description || '');
+  const [contactEmail, setContactEmail] = useState(currentHotel?.contactEmail || '');
+  const [contactPhone, setContactPhone] = useState(currentHotel?.contactPhone || '');
+  const [checkInTime, setCheckInTime] = useState(currentHotel?.policies?.checkInTime || '3:00 PM');
+  const [checkOutTime, setCheckOutTime] = useState(currentHotel?.policies?.checkOutTime || '11:00 AM');
+  const [primaryColor, setPrimaryColor] = useState(currentHotel?.brandColors?.primary || '#1E293B');
+  const [accentColor, setAccentColor] = useState(currentHotel?.brandColors?.accent || '#C5A880');
+
+  if (!currentHotel) {
+    return (
+      <main className="p-6 sm:p-10 space-y-6 max-w-4xl">
+        <div className="bg-white rounded-3xl p-8 border border-[#E8E2D8] text-center">
+          <Building2 className="w-12 h-12 text-[#AF8F64] mx-auto mb-3 opacity-60" />
+          <h2 className="font-editorial text-xl font-bold text-[#141413]">No Hotel Selected</h2>
+          <p className="text-xs text-[#575650] mt-1">Please select or register a hotel property to manage its settings.</p>
+        </div>
+      </main>
+    );
+  }
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +76,7 @@ export default function HotelSettingsPage() {
               <label className="font-semibold text-[#141413] block mb-1.5">Tenant URL Slug</label>
               <input
                 type="text"
-                value={currentHotel.slug}
+                value={currentHotel?.slug || ''}
                 disabled
                 className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3.5 py-2.5 text-stone-500 font-mono"
               />

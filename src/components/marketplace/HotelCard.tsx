@@ -15,14 +15,23 @@ export function HotelCard({ hotel }: { hotel: Hotel }) {
     <article className="group relative bg-white border border-[#E8E2D8] rounded-3xl overflow-hidden luxury-card flex flex-col">
       {/* Image Container */}
       <div className="relative aspect-4/3 w-full img-zoom-container bg-stone-100">
-        <Image
-          src={hotel.heroImage}
-          alt={hotel.name}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition-transform duration-700 group-hover:scale-105"
-          priority={hotel.slug === 'azure-riviera-resort'}
-        />
+        {hotel.heroImage ? (
+          <Image
+            src={hotel.heroImage}
+            alt={hotel.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-[#1A1F26] flex flex-col items-center justify-center text-center p-6 text-white">
+            <div className="w-16 h-16 rounded-full border border-[#C5A880]/50 flex items-center justify-center font-editorial text-2xl font-bold text-[#C5A880] mb-2">
+              {hotel.name.charAt(0)}
+            </div>
+            <span className="font-editorial text-sm font-bold text-white">{hotel.name}</span>
+            <span className="text-[10px] text-[#C5A880] uppercase tracking-widest mt-1 font-semibold">{hotel.luxuryTier}</span>
+          </div>
+        )}
 
         {/* Top Badges */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">

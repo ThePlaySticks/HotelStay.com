@@ -12,7 +12,7 @@ export default function StaffManagementPage() {
   const { hotels, showToast } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
   const [staffList, setStaffList] = useState<StaffMember[]>(
     INITIAL_STAFF.filter((s) => s.hotelId === currentHotelId)
@@ -38,7 +38,7 @@ export default function StaffManagementPage() {
             Staff & Role-Based Access Control
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Manage hotel employees and enforce strict functional authorization at {currentHotel.name}.
+            Manage hotel employees and enforce strict functional authorization at {currentHotel?.name || 'Sanctuary'}.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function StaffManagementPage() {
               id: 'stf-' + Math.floor(100 + Math.random() * 900),
               hotelId: currentHotelId,
               fullName: 'Elena Moreau',
-              email: 'elena.m@' + currentHotel.slug + '.com',
+              email: 'elena.m@' + (currentHotel?.slug || 'hotel') + '.com',
               role: 'Front Desk',
               phone: '+33 4 93 16 00 25',
               status: 'invited',
@@ -71,7 +71,7 @@ export default function StaffManagementPage() {
             Active Hotel Staff Team
           </h2>
           <p className="text-xs text-[#85837B] mt-0.5">
-            Employees authorized under tenant ID: {currentHotel.id}
+            Employees authorized under tenant ID: {currentHotel?.id || currentHotelId}
           </p>
         </div>
 

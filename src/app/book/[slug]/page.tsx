@@ -8,6 +8,7 @@ import { Navbar } from '@/components/common/Navbar';
 import { Footer } from '@/components/common/Footer';
 import { useMarketplace } from '@/context/MarketplaceContext';
 import { useAuth } from '@/context/AuthContext';
+import { RoomType } from '@/lib/types';
 import {
   Check,
   ShieldCheck,
@@ -33,15 +34,15 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const { hotels, createReservation } = useMarketplace();
   const { currentPersona } = useAuth();
 
-  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0];
-  const initialRoomId = searchParams.get('roomId') || hotel.roomTypes[0].id;
-  const initialRoom = hotel.roomTypes.find((r) => r.id === initialRoomId) || hotel.roomTypes[0];
+  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0] || null;
+  const initialRoomId = searchParams.get('roomId') || hotel?.roomTypes?.[0]?.id;
+  const initialRoom = hotel?.roomTypes?.find((r) => r.id === initialRoomId) || hotel?.roomTypes?.[0] || null;
 
   // Booking Flow Steps: 1 -> 2 -> 3 -> 4 -> 5
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Form State
-  const [selectedRoom, setSelectedRoom] = useState(initialRoom);
+  const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(initialRoom);
   const [checkInDate, setCheckInDate] = useState(searchParams.get('checkIn') || '2026-09-24');
   const [checkOutDate, setCheckOutDate] = useState(searchParams.get('checkOut') || '2026-09-28');
   const [adults, setAdults] = useState(Number(searchParams.get('guests')) || 2);
@@ -74,7 +75,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
 
   // Calculations
   const nights = 4;
-  const roomSubtotal = selectedRoom.basePricePerNight * nights;
+  const roomSubtotal = (selectedRoom?.basePricePerNight || 0) * nights;
   const extrasTotal = selectedExtras.reduce((sum, extraId) => {
     const item = EXTRAS_OPTIONS.find((e) => e.id === extraId);
     return sum + (item ? item.price : 0);
@@ -92,6 +93,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
 
   const handleCompletePayment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hotel || !selectedRoom) return;
 
     const reservation = createReservation({
       hotelId: hotel.id,
@@ -141,6 +143,25 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
     { num: 4, label: 'Payment' },
     { num: 5, label: 'Confirmation' },
   ];
+
+  if (!hotel || !selectedRoom) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+        <Navbar />
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full text-center">
+          <h1 className="font-editorial text-3xl font-bold text-[#141413] mb-4">No Reservation Available</h1>
+          <p className="text-sm text-[#575650] mb-8">This property does not currently have open suites for reservation.</p>
+          <Link
+            href="/search"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#141413] hover:bg-[#2A2925] text-white rounded-full text-xs font-bold uppercase tracking-wider"
+          >
+            Explore Sanctuaries
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5]">

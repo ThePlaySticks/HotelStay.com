@@ -32,9 +32,9 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
   const router = useRouter();
   const { hotels, reviews, isWishlisted, toggleWishlist, showToast } = useMarketplace();
 
-  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0];
-  const hotelReviews = reviews.filter((r) => r.hotelId === hotel.id);
-  const wishlisted = isWishlisted(hotel.id);
+  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0] || null;
+  const hotelReviews = hotel ? reviews.filter((r) => r.hotelId === hotel.id) : [];
+  const wishlisted = hotel ? isWishlisted(hotel.id) : false;
 
   // Gallery Lightbox Modal State
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -44,7 +44,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
   const [checkIn, setCheckIn] = useState('2026-09-24');
   const [checkOut, setCheckOut] = useState('2026-09-28');
   const [guests, setGuests] = useState(2);
-  const [selectedRoom, setSelectedRoom] = useState<RoomType>(hotel.roomTypes[0]);
+  const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(hotel?.roomTypes?.[0] || null);
 
   // Calculate nights
   const nights = 4;
@@ -55,6 +55,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
 
   const handleBookNow = (room?: RoomType) => {
     const roomToBook = room || selectedRoom;
+    if (!roomToBook || !hotel) return;
     const query = new URLSearchParams({
       roomId: roomToBook.id,
       checkIn,
@@ -63,6 +64,25 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
     });
     router.push(`/book/${hotel.slug}?${query.toString()}`);
   };
+
+  if (!hotel) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+        <Navbar />
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full text-center">
+          <h1 className="font-editorial text-3xl font-bold text-[#141413] mb-4">Sanctuary Not Found</h1>
+          <p className="text-sm text-[#575650] mb-8">No hotel matches this destination at the moment.</p>
+          <Link
+            href="/search"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#141413] hover:bg-[#2A2925] text-white rounded-full text-xs font-bold uppercase tracking-wider"
+          >
+            Explore Sanctuaries
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
@@ -472,7 +492,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
                     </button>
                     <button
                       type="button"
-                      disabled={guests >= selectedRoom.maxGuests}
+                      disabled={guests >= (selectedRoom?.maxGuests || 4)}
                       onClick={() => setGuests(guests + 1)}
                       className="w-6 h-6 rounded-full border border-stone-300 text-xs font-bold disabled:opacity-30"
                     >
@@ -485,7 +505,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
               {/* Transparent Price Breakdown */}
               <div className="space-y-2 text-xs text-[#575650] pt-2 border-t border-[#F0EAE1]">
                 <div className="flex justify-between">
-                  <span>{hotel.currencySymbol}{selectedRoom.basePricePerNight} × {nights} nights</span>
+                  <span>{hotel.currencySymbol}{selectedRoom?.basePricePerNight || 0} × {nights} nights</span>
                   <span className="font-semibold text-[#141413]">{hotel.currencySymbol}{roomTotal}</span>
                 </div>
                 <div className="flex justify-between">

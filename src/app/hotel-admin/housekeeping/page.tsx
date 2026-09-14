@@ -12,7 +12,7 @@ export default function HousekeepingPage() {
   const { hotels, showToast } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
   const [tasks, setTasks] = useState<HousekeepingTask[]>(
     INITIAL_HOUSEKEEPING.filter((t) => t.hotelId === currentHotelId)
@@ -40,7 +40,7 @@ export default function HousekeepingPage() {
             Housekeeping Operations
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Turnover inspections, deep sanitization, and daily refresh roster for {currentHotel.name}.
+            Turnover inspections, deep sanitization, and daily refresh roster for {currentHotel?.name || 'Sanctuary'}.
           </p>
         </div>
 

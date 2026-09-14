@@ -11,7 +11,7 @@ export default function RoomsManagementPage() {
   const { hotels, rooms, updateRoomStatus } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
   const tenantRooms = rooms.filter((r) => r.hotelId === currentHotelId);
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -40,7 +40,7 @@ export default function RoomsManagementPage() {
             Rooms & Status Grid
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Real-time physical status tracking for {currentHotel.name}. Total: {tenantRooms.length} keys.
+            Real-time physical status tracking for {currentHotel?.name || 'Sanctuary'}. Total: {tenantRooms.length} keys.
           </p>
         </div>
 

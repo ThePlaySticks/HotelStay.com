@@ -24,7 +24,7 @@ export default function ReservationsManagementPage() {
   const { hotels, reservations, updateReservationStatus, showToast } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
   // Strictly tenant isolated reservations
   const tenantReservations = reservations.filter((r) => r.hotelId === currentHotelId);
@@ -55,7 +55,7 @@ export default function ReservationsManagementPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentHotel.slug}-reservations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${currentHotel?.slug || 'export'}-reservations-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     showToast({ title: 'Export Generated', description: 'Reservations exported to CSV.', type: 'info' });
   };
@@ -71,7 +71,7 @@ export default function ReservationsManagementPage() {
             Reservation Management
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Managing reservations for {currentHotel.name}. Total active: {tenantReservations.length} records.
+            Managing reservations for {currentHotel?.name || 'Sanctuary'}. Total active: {tenantReservations.length} records.
           </p>
         </div>
 

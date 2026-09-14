@@ -50,6 +50,8 @@ interface MarketplaceContextType {
   isWishlisted: (hotelId: string) => boolean;
   filters: SearchFilters;
   setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
+  addHotel: (hotel: Hotel) => void;
+  deleteHotel: (hotelId: string) => void;
   createReservation: (newReservation: Omit<Reservation, 'id' | 'createdAt'>) => Reservation;
   updateReservationStatus: (reservationId: string, status: Reservation['status']) => void;
   updateRoomStatus: (roomId: string, status: IndividualRoom['status']) => void;
@@ -76,27 +78,59 @@ const defaultFilters: SearchFilters = {
 const MarketplaceContext = createContext<MarketplaceContextType | undefined>(undefined);
 
 export function MarketplaceProvider({ children }: { children: React.ReactNode }) {
-  const [hotels] = useState<Hotel[]>(INITIAL_HOTELS);
+  const [hotels, setHotels] = useState<Hotel[]>(INITIAL_HOTELS);
   const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
   const [rooms, setRooms] = useState<IndividualRoom[]>(INITIAL_ROOMS);
   const [reviews] = useState<Review[]>(INITIAL_REVIEWS);
   const [applications, setApplications] = useState<TenantApplication[]>(INITIAL_TENANT_APPLICATIONS);
   const [payouts, setPayouts] = useState<PayoutRequest[]>(INITIAL_PAYOUTS);
-  const [wishlist, setWishlist] = useState<string[]>(['hotel-azure']);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {
     try {
+      const savedHotels = localStorage.getItem('hotelstay_hotels');
+      if (savedHotels) setHotels(JSON.parse(savedHotels));
+
       const savedWishlist = localStorage.getItem('hotelstay_wishlist');
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
 
       const savedReservations = localStorage.getItem('hotelstay_reservations');
       if (savedReservations) setReservations(JSON.parse(savedReservations));
+
+      const savedRooms = localStorage.getItem('hotelstay_rooms');
+      if (savedRooms) setRooms(JSON.parse(savedRooms));
     } catch {
       // ignore
     }
   }, []);
+
+  const addHotel = (newHotel: Hotel) => {
+    setHotels(prev => {
+      const updated = [newHotel, ...prev];
+      localStorage.setItem('hotelstay_hotels', JSON.stringify(updated));
+      return updated;
+    });
+    showToast({
+      title: 'Hotel Created',
+      description: `${newHotel.name} registered successfully.`,
+      type: 'success',
+    });
+  };
+
+  const deleteHotel = (hotelId: string) => {
+    setHotels(prev => {
+      const updated = prev.filter(h => h.id !== hotelId);
+      localStorage.setItem('hotelstay_hotels', JSON.stringify(updated));
+      return updated;
+    });
+    showToast({
+      title: 'Hotel Removed',
+      description: 'Property removed from directory.',
+      type: 'info',
+    });
+  };
 
   const toggleWishlist = (hotelId: string) => {
     setWishlist(prev => {
@@ -157,7 +191,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const updateRoomStatus = (roomId: string, status: IndividualRoom['status']) => {
-    setRooms(prev => prev.map(room => (room.id === roomId ? { ...room, status } : room)));
+    setRooms(prev => {
+      const updated = prev.map(room => (room.id === roomId ? { ...room, status } : room));
+      localStorage.setItem('hotelstay_rooms', JSON.stringify(updated));
+      return updated;
+    });
     showToast({
       title: 'Room Status Updated',
       description: `Room updated to ${status.toUpperCase()}`,
@@ -197,6 +235,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         isWishlisted,
         filters,
         setFilters,
+        addHotel,
+        deleteHotel,
         createReservation,
         updateReservationStatus,
         updateRoomStatus,

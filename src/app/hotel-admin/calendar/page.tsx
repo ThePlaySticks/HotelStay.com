@@ -10,7 +10,7 @@ export default function HotelCalendarPage() {
   const { hotels, rooms, reservations } = useMarketplace();
 
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
   const tenantRooms = rooms.filter((r) => r.hotelId === currentHotelId);
   const tenantReservations = reservations.filter((r) => r.hotelId === currentHotelId);
 
@@ -45,7 +45,7 @@ export default function HotelCalendarPage() {
             Availability & Occupancy Calendar
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Real-time room status and scheduled reservations for {currentHotel.name}.
+            Real-time room status and scheduled reservations for {currentHotel?.name || 'Sanctuary'}.
           </p>
         </div>
 

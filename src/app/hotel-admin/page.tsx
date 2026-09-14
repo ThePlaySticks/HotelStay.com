@@ -25,7 +25,7 @@ export default function HotelAdminDashboard() {
 
   // Strict tenant data isolation
   const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0];
+  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
 
   const tenantReservations = reservations.filter((r) => r.hotelId === currentHotelId);
   const tenantRooms = rooms.filter((rm) => rm.hotelId === currentHotelId);
@@ -45,6 +45,20 @@ export default function HotelAdminDashboard() {
     .filter((r) => r.paymentStatus === 'paid')
     .reduce((sum, r) => sum + r.totalAmount, 0);
 
+  if (!currentHotel) {
+    return (
+      <main className="p-6 sm:p-10 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4 max-w-md">
+          <Building2 className="w-12 h-12 text-[#C5A880] mx-auto" />
+          <h2 className="font-editorial text-2xl font-bold text-[#141413]">No Property Registered</h2>
+          <p className="text-sm text-[#575650]">
+            Your hotel workspace is ready. Onboard your first property to unlock the full management dashboard.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="p-6 sm:p-10 space-y-8">
       {/* Top Banner with Manager Greeting */}
@@ -55,20 +69,20 @@ export default function HotelAdminDashboard() {
               Tenant Isolated Workspace
             </span>
             <span className="text-xs text-stone-500">
-              Property ID: <span className="font-mono text-stone-800">{currentHotel.id}</span>
+              Property ID: <span className="font-mono text-stone-800">{currentHotel?.id || currentHotelId}</span>
             </span>
           </div>
           <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413] mt-2">
             Good morning, {currentPersona.name}
           </h1>
           <p className="text-xs text-[#575650] mt-0.5">
-            Operational dashboard for <span className="font-semibold text-black">{currentHotel.name}</span>. Here is your daily property snapshot.
+            Operational dashboard for <span className="font-semibold text-black">{currentHotel?.name || 'Sanctuary'}</span>. Here is your daily property snapshot.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
-            href={`/hotel/${currentHotel.slug}`}
+            href={currentHotel?.slug ? `/hotel/${currentHotel.slug}` : '/search'}
             target="_blank"
             className="px-4 py-2 rounded-full border border-[#D5CCC0] bg-white hover:bg-[#FAF8F5] text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition-colors shadow-2xs"
           >
@@ -255,8 +269,8 @@ export default function HotelAdminDashboard() {
             </div>
 
             <div className="mt-4 pt-3 border-t border-[#F0EAE1] flex items-center justify-between text-xs text-stone-500">
-              <span>Avg. Daily Rate (ADR): <strong className="text-black">€{currentHotel.startingPrice}</strong></span>
-              <span>RevPAR: <strong className="text-black">€{Math.round(currentHotel.startingPrice * (occupancyRate / 100))}</strong></span>
+              <span>Avg. Daily Rate (ADR): <strong className="text-black">€{currentHotel?.startingPrice || 0}</strong></span>
+              <span>RevPAR: <strong className="text-black">€{Math.round((currentHotel?.startingPrice || 0) * (occupancyRate / 100))}</strong></span>
             </div>
           </div>
         </div>
@@ -270,7 +284,7 @@ export default function HotelAdminDashboard() {
               Active Property Reservations
             </h2>
             <p className="text-xs text-[#85837B] mt-0.5">
-              Strictly filtered to {currentHotel.name} (Tenant ID: {currentHotel.id})
+              Strictly filtered to {currentHotel?.name || 'Sanctuary'} (Tenant ID: {currentHotel?.id || currentHotelId})
             </p>
           </div>
           <Link
