@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Navbar } from '@/components/common/Navbar';
 import { Footer } from '@/components/common/Footer';
 import { FloatingSearchBar } from '@/components/marketplace/FloatingSearchBar';
@@ -17,16 +18,19 @@ import {
   Sparkles,
   ChevronDown,
   X,
+  Building2,
+  ArrowRight,
+  Compass,
 } from 'lucide-react';
 
 function SearchContent() {
   const searchParams = useSearchParams();
   const destQuery = searchParams.get('dest') || '';
-  const { hotels, filters, setFilters } = useMarketplace();
+  const { approvedHotels, destinations } = useMarketplace();
 
   // Local filter states
   const [selectedCity, setSelectedCity] = useState<string>(destQuery);
-  const [maxPrice, setMaxPrice] = useState<number>(1500);
+  const [maxPrice, setMaxPrice] = useState<number>(2500);
   const [selectedTiers, setSelectedTiers] = useState<string[]>([]);
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -37,55 +41,81 @@ function SearchContent() {
 
   const ALL_AMENITIES = [
     'Infinity Cliffside Pool',
+    'Rooftop Ocean Infinity Pool',
     'Private Beach Club',
     'Michelin-Starred Dining',
-    'Holistic Wellness Spa',
+    'Holistic Thermal Spa & Hammam',
     'Caldera Heated Jacuzzi',
-    'Championship Golf Course',
-    'Whisky Tasting Vault',
+    '24/7 Dedicated Butler Service',
+    'Chauffeured Armored Escort Available',
+    'Subterranean Vintage Wine Vault',
   ];
 
-  const ALL_TIERS = ['Ocean Resort', 'Heritage Chateau', 'Boutique'];
+  const ALL_TIERS = ['5-Star Luxury', 'Ocean Resort', 'Heritage Chateau', 'Boutique'];
 
   // Filter computation
   const filteredHotels = useMemo(() => {
-    return hotels.filter((hotel) => {
-      // City filter
-      if (selectedCity && !hotel.location.city.toLowerCase().includes(selectedCity.toLowerCase()) && !hotel.location.country.toLowerCase().includes(selectedCity.toLowerCase())) {
-        return false;
-      }
-      // Price filter
-      if (hotel.startingPrice > maxPrice) {
-        return false;
-      }
-      // Tier filter
-      if (selectedTiers.length > 0 && !selectedTiers.includes(hotel.luxuryTier)) {
-        return false;
-      }
-      // Stars filter
-      if (selectedStars.length > 0 && !selectedStars.includes(hotel.starRating)) {
-        return false;
-      }
-      // Amenities filter
-      if (selectedAmenities.length > 0 && !selectedAmenities.some((a) => hotel.amenities.includes(a))) {
-        return false;
-      }
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price_low') return a.startingPrice - b.startingPrice;
-      if (sortBy === 'price_high') return b.startingPrice - a.startingPrice;
-      if (sortBy === 'rating') return b.guestRating - a.guestRating;
-      return 0; // recommended
-    });
-  }, [hotels, selectedCity, maxPrice, selectedTiers, selectedStars, selectedAmenities, sortBy]);
+    return approvedHotels
+      .filter((hotel) => {
+        // City / Country filter
+        if (
+          selectedCity &&
+          !hotel.location.city.toLowerCase().includes(selectedCity.toLowerCase()) &&
+          !hotel.location.country.toLowerCase().includes(selectedCity.toLowerCase())
+        ) {
+          return false;
+        }
+        // Price filter
+        if (hotel.startingPrice > maxPrice) {
+          return false;
+        }
+        // Tier filter
+        if (selectedTiers.length > 0 && !selectedTiers.includes(hotel.luxuryTier)) {
+          return false;
+        }
+        // Stars filter
+        if (selectedStars.length > 0 && !selectedStars.includes(hotel.starRating)) {
+          return false;
+        }
+        // Amenities filter
+        if (selectedAmenities.length > 0 && !selectedAmenities.some((a) => hotel.amenities.includes(a))) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'price_low') return a.startingPrice - b.startingPrice;
+        if (sortBy === 'price_high') return b.startingPrice - a.startingPrice;
+        if (sortBy === 'rating') return b.guestRating - a.guestRating;
+        return 0; // recommended
+      });
+  }, [approvedHotels, selectedCity, maxPrice, selectedTiers, selectedStars, selectedAmenities, sortBy]);
 
   const handleResetFilters = () => {
     setSelectedCity('');
-    setMaxPrice(1500);
+    setMaxPrice(2500);
     setSelectedTiers([]);
     setSelectedStars([]);
     setSelectedAmenities([]);
     setSortBy('recommended');
+  };
+
+  const toggleTier = (tier: string) => {
+    setSelectedTiers((prev) =>
+      prev.includes(tier) ? prev.filter((t) => t !== tier) : [...prev, tier]
+    );
+  };
+
+  const toggleStar = (star: number) => {
+    setSelectedStars((prev) =>
+      prev.includes(star) ? prev.filter((s) => s !== star) : [...prev, star]
+    );
+  };
+
+  const toggleAmenity = (amenity: string) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]
+    );
   };
 
   const FilterPanel = (
@@ -97,120 +127,117 @@ function SearchContent() {
         </h3>
         <button
           onClick={handleResetFilters}
-          className="text-xs font-semibold text-[#85837B] hover:text-[#141413] flex items-center gap-1 transition-colors"
+          className="text-xs font-semibold text-[#85837B] hover:text-[#141413] flex items-center gap-1 transition-colors cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reset
         </button>
       </div>
 
+      {/* Destination Filter */}
+      <div>
+        <label className="block text-xs font-semibold text-[#141413] mb-2">Destination / Region</label>
+        <select
+          value={selectedCity}
+          onChange={(e) => setSelectedCity(e.target.value)}
+          className="w-full bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl px-3 py-2 text-xs font-semibold text-[#141413] focus:outline-hidden cursor-pointer"
+        >
+          <option value="">All Global Destinations</option>
+          {destinations.map((d) => (
+            <option key={d.id} value={d.city}>
+              {d.city}, {d.country}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Max Price Range */}
       <div>
         <div className="flex items-center justify-between text-xs font-semibold text-[#141413] mb-2">
           <span>Max Nightly Rate</span>
-          <span className="text-[#C5A880] font-bold">Up to €{maxPrice}</span>
+          <span className="text-[#AF8F64] font-bold">Up to ${maxPrice}</span>
         </div>
         <input
           type="range"
           min={300}
-          max={1500}
+          max={2500}
           step={50}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
           className="w-full accent-[#141413] cursor-pointer"
         />
-        <div className="flex justify-between text-[11px] text-[#85837B] mt-1">
-          <span>€300</span>
-          <span>€1,500+</span>
+        <div className="flex justify-between text-[10px] text-[#85837B] mt-1 font-mono">
+          <span>$300</span>
+          <span>$2,500+</span>
         </div>
       </div>
 
       {/* Luxury Tier */}
-      <div className="pt-4 border-t border-[#F0EAE1]">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#85837B] mb-3">
-          Property Tier
-        </h4>
-        <div className="space-y-2">
+      <div>
+        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Sanctuary Collection</label>
+        <div className="space-y-1.5">
           {ALL_TIERS.map((tier) => {
-            const checked = selectedTiers.includes(tier);
-            return (
-              <label
-                key={tier}
-                className="flex items-center gap-2.5 text-xs text-[#575650] hover:text-[#141413] cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    setSelectedTiers(
-                      checked ? selectedTiers.filter((t) => t !== tier) : [...selectedTiers, tier]
-                    );
-                  }}
-                  className="rounded border-[#D5CCC0] text-[#141413] focus:ring-[#C5A880]"
-                />
-                <span>{tier}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Star Rating */}
-      <div className="pt-4 border-t border-[#F0EAE1]">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#85837B] mb-3">
-          Star Rating
-        </h4>
-        <div className="flex gap-2">
-          {[5, 4].map((star) => {
-            const active = selectedStars.includes(star);
+            const active = selectedTiers.includes(tier);
             return (
               <button
-                key={star}
-                type="button"
-                onClick={() => {
-                  setSelectedStars(
-                    active ? selectedStars.filter((s) => s !== star) : [...selectedStars, star]
-                  );
-                }}
-                className={`flex-1 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+                key={tier}
+                onClick={() => toggleTier(tier)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                   active
-                    ? 'bg-[#141413] text-white border-[#141413]'
-                    : 'bg-white border-[#D5CCC0] text-[#575650] hover:border-[#141413]'
+                    ? 'bg-[#141413] text-white'
+                    : 'bg-[#FAF8F5] text-[#575650] hover:bg-[#F0EAE1]'
                 }`}
               >
-                {star} ★ Luxury
+                <span>{tier}</span>
+                {active && <Check className="w-3.5 h-3.5 text-[#C5A880]" />}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Amenities Filter */}
-      <div className="pt-4 border-t border-[#F0EAE1]">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#85837B] mb-3">
-          Curated Amenities
-        </h4>
-        <div className="space-y-2">
+      {/* Star Rating */}
+      <div>
+        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Star Rating</label>
+        <div className="flex gap-2">
+          {[5, 4].map((stars) => {
+            const active = selectedStars.includes(stars);
+            return (
+              <button
+                key={stars}
+                onClick={() => toggleStar(stars)}
+                className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
+                  active
+                    ? 'bg-[#141413] text-white border-[#141413]'
+                    : 'bg-white border-[#E8E2D8] text-[#575650] hover:border-[#D5CCC0]'
+                }`}
+              >
+                <span>{stars} Stars</span>
+                {active && <Check className="w-3 h-3 text-[#C5A880]" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Curated Amenities */}
+      <div>
+        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Curated Amenities</label>
+        <div className="space-y-1.5">
           {ALL_AMENITIES.map((amenity) => {
-            const checked = selectedAmenities.includes(amenity);
+            const active = selectedAmenities.includes(amenity);
             return (
               <label
                 key={amenity}
-                className="flex items-center gap-2.5 text-xs text-[#575650] hover:text-[#141413] cursor-pointer"
+                className="flex items-center gap-2.5 text-xs text-[#575650] hover:text-[#141413] cursor-pointer py-1"
               >
                 <input
                   type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    setSelectedAmenities(
-                      checked
-                        ? selectedAmenities.filter((a) => a !== amenity)
-                        : [...selectedAmenities, amenity]
-                    );
-                  }}
-                  className="rounded border-[#D5CCC0] text-[#141413] focus:ring-[#C5A880]"
+                  checked={active}
+                  onChange={() => toggleAmenity(amenity)}
+                  className="rounded-md border-[#D5CCC0] text-[#141413] focus:ring-0 w-3.5 h-3.5 accent-[#141413]"
                 />
-                <span className="line-clamp-1">{amenity}</span>
+                <span className="leading-tight">{amenity}</span>
               </label>
             );
           })}
@@ -223,162 +250,151 @@ function SearchContent() {
     <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
       <Navbar />
 
-      {/* Top Search Bar Strip */}
-      <div className="bg-white border-b border-[#E8E2D8] py-4 px-4 sm:px-6 lg:px-8 shadow-xs">
+      {/* SEARCH HEADER */}
+      <section className="bg-white border-b border-[#E8E2D8] py-6 px-4 sm:px-6 lg:px-8 shadow-2xs">
         <div className="max-w-7xl mx-auto">
           <FloatingSearchBar compact />
         </div>
-      </div>
+      </section>
 
-      {/* Main Results Container */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {/* Results Header & Mobile Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E8E2D8] gap-4">
+        {/* Results Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-[#E8E2D8] gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-[#AF8F64] font-bold">
-              Marketplace Discovery
-            </div>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413] mt-0.5">
+            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
               {selectedCity ? `Stays in ${selectedCity}` : 'All Verified Sanctuaries'}
             </h1>
             <p className="text-xs text-[#85837B] mt-1">
-              Showing {filteredHotels.length} luxury {filteredHotels.length === 1 ? 'property' : 'properties'} matching your criteria
+              Showing <span className="font-bold text-[#141413]">{filteredHotels.length}</span> verified properties meeting criteria
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Mobile Filter Sheet Trigger */}
-            <button
-              onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#D5CCC0] bg-white text-xs font-semibold text-[#141413]"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#C5A880]" />
-              <span>Filters</span>
-            </button>
-
-            {/* Mobile Map / List Toggle */}
-            <div className="lg:hidden flex rounded-full border border-[#D5CCC0] p-0.5 bg-white">
-              <button
-                onClick={() => setMobileView('list')}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  mobileView === 'list' ? 'bg-[#141413] text-white' : 'text-[#575650]'
-                }`}
-              >
-                List
-              </button>
-              <button
-                onClick={() => setMobileView('map')}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  mobileView === 'map' ? 'bg-[#141413] text-white' : 'text-[#575650]'
-                }`}
-              >
-                Map
-              </button>
-            </div>
-
-            {/* Sort Selector */}
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="text-[#85837B] hidden sm:inline">Sort:</span>
+            {/* Sort Dropdown */}
+            <div className="relative flex items-center gap-2 text-xs font-semibold text-[#575650]">
+              <span className="hidden sm:inline">Sort:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white border border-[#D5CCC0] rounded-full px-3 py-2 text-xs font-semibold text-[#141413] focus:outline-hidden cursor-pointer"
+                className="bg-white border border-[#E8E2D8] rounded-full px-4 py-2 text-xs font-semibold text-[#141413] focus:outline-hidden cursor-pointer shadow-2xs"
               >
-                <option value="recommended">Recommended</option>
+                <option value="recommended">HotelStay Curated</option>
+                <option value="rating">Highest Guest Rating</option>
                 <option value="price_low">Price: Low to High</option>
                 <option value="price_high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
               </select>
+            </div>
+
+            {/* Mobile Filter Trigger */}
+            <button
+              onClick={() => setMobileFilterOpen(true)}
+              className="lg:hidden flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#141413] text-white text-xs font-semibold"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#C5A880]" />
+              Filters
+            </button>
+
+            {/* Mobile View Toggle */}
+            <div className="sm:hidden flex rounded-full border border-[#E8E2D8] bg-white p-1">
+              <button
+                onClick={() => setMobileView('list')}
+                className={`p-1.5 rounded-full ${mobileView === 'list' ? 'bg-[#141413] text-white' : 'text-stone-500'}`}
+              >
+                <ListFilter className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setMobileView('map')}
+                className={`p-1.5 rounded-full ${mobileView === 'map' ? 'bg-[#141413] text-white' : 'text-stone-500'}`}
+              >
+                <MapIcon className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* 3-Column Desktop Layout: FILTERS | HOTEL RESULTS | INTERACTIVE MAP */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8">
-          {/* LEFT: Filters Sidebar (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-3 bg-white p-6 rounded-3xl border border-[#E8E2D8] h-fit sticky top-28 shadow-xs">
+        {/* 2-COLUMN GRID (Filters + Hotel Listings / Map) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* DESKTOP FILTER SIDEBAR */}
+          <aside className="hidden lg:block lg:col-span-3 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs sticky top-28">
             {FilterPanel}
           </aside>
 
-          {/* CENTER: Hotel Results */}
-          <div
-            className={`lg:col-span-5 space-y-6 ${
-              mobileView === 'map' ? 'hidden lg:block' : 'block'
-            }`}
-          >
+          {/* HOTEL LISTINGS & MAP */}
+          <div className="lg:col-span-9 space-y-6">
             {filteredHotels.length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 text-center border border-[#E8E2D8]">
-                <Sparkles className="w-8 h-8 text-[#C5A880] mx-auto mb-3" />
-                <h3 className="font-editorial text-lg font-bold text-[#141413]">
-                  No sanctuaries matched your filters
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#E8E2D8] max-w-xl mx-auto space-y-4">
+                <div className="w-14 h-14 rounded-full bg-amber-50 text-[#C5A880] flex items-center justify-center mx-auto">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <h3 className="font-editorial text-2xl font-bold text-[#141413]">
+                  {selectedCity ? `Hotels coming soon to ${selectedCity}` : 'No matching sanctuaries found'}
                 </h3>
-                <p className="text-xs text-[#85837B] mt-1.5 max-w-sm mx-auto">
-                  Try broadening your price range or clearing amenity tags to see all verified properties.
+                <p className="text-xs text-[#575650] max-w-md mx-auto leading-relaxed">
+                  We are actively expanding our curated stays in this region. Try adjusting your filters or explore other destinations.
                 </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="mt-4 px-5 py-2 rounded-full bg-[#141413] text-white text-xs font-semibold"
-                >
-                  Reset All Filters
-                </button>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-6 py-2.5 rounded-full bg-[#141413] text-white text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors"
+                  >
+                    Reset All Filters
+                  </button>
+                  <Link
+                    href="/destinations"
+                    className="px-6 py-2.5 rounded-full border border-[#D5CCC0] bg-white text-xs font-bold uppercase tracking-wider text-[#141413] hover:bg-[#FAF8F5]"
+                  >
+                    View All Destinations
+                  </Link>
+                </div>
               </div>
             ) : (
-              filteredHotels.map((hotel) => (
-                <div
-                  key={hotel.id}
-                  onMouseEnter={() => setHighlightedHotelId(hotel.id)}
-                  className={`transition-transform ${
-                    highlightedHotelId === hotel.id ? 'ring-2 ring-[#C5A880] rounded-3xl' : ''
-                  }`}
-                >
-                  <HotelCard hotel={hotel} />
-                </div>
-              ))
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredHotels.map((hotel) => (
+                  <div
+                    key={hotel.id}
+                    onMouseEnter={() => setHighlightedHotelId(hotel.id)}
+                    onMouseLeave={() => setHighlightedHotelId(undefined)}
+                  >
+                    <HotelCard hotel={hotel} />
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
 
-          {/* RIGHT: Interactive Map */}
-          <div
-            className={`lg:col-span-4 ${
-              mobileView === 'list' ? 'hidden lg:block' : 'block'
-            }`}
-          >
-            <div className="sticky top-28">
-              <InteractiveMap
-                hotels={filteredHotels}
-                selectedHotelId={highlightedHotelId}
-                onSelectHotel={(id) => setHighlightedHotelId(id)}
-              />
-            </div>
+            {/* Interactive Map Visual */}
+            {filteredHotels.length > 0 && (
+              <div className="mt-12 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-editorial text-xl font-bold text-[#141413]">Interactive Regional Map</h3>
+                    <p className="text-xs text-[#85837B]">Explore coordinates and location topography</p>
+                  </div>
+                </div>
+                <InteractiveMap hotels={filteredHotels} highlightedHotelId={highlightedHotelId} />
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      {/* Mobile Filters Drawer */}
+      {/* MOBILE FILTER MODAL DRAWER */}
       {mobileFilterOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-sm bg-white h-full p-6 overflow-y-auto animate-in slide-in-from-right duration-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
-                <h3 className="font-editorial text-lg font-bold text-[#141413]">Filter Properties</h3>
-                <button
-                  onClick={() => setMobileFilterOpen(false)}
-                  className="p-1 rounded-full hover:bg-stone-100 text-stone-500"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="py-4">{FilterPanel}</div>
-            </div>
-
-            <div className="pt-4 border-t border-[#E8E2D8]">
-              <button
-                onClick={() => setMobileFilterOpen(false)}
-                className="w-full py-3 bg-[#141413] text-white rounded-full text-xs font-bold uppercase tracking-wider"
-              >
-                View {filteredHotels.length} Stays
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in">
+          <div className="bg-white w-full max-w-md h-full p-6 overflow-y-auto space-y-6 animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
+              <h3 className="font-editorial text-xl font-bold text-[#141413]">Filter Properties</h3>
+              <button onClick={() => setMobileFilterOpen(false)} className="p-2 rounded-full hover:bg-stone-100">
+                <X className="w-5 h-5" />
               </button>
             </div>
+            {FilterPanel}
+            <button
+              onClick={() => setMobileFilterOpen(false)}
+              className="w-full py-3.5 rounded-full bg-[#141413] text-white text-xs font-bold uppercase tracking-wider shadow-md"
+            >
+              Show {filteredHotels.length} Results
+            </button>
           </div>
         </div>
       )}
@@ -390,7 +406,7 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm font-semibold">Loading luxury stays...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">Loading search results...</div>}>
       <SearchContent />
     </Suspense>
   );

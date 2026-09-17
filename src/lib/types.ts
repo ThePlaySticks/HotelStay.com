@@ -1,5 +1,16 @@
 export type UserRole = 'guest' | 'hotel_owner' | 'hotel_manager' | 'front_desk' | 'housekeeping' | 'super_admin';
 
+export type HotelApprovalStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'needs_changes'
+  | 'rejected'
+  | 'suspended'
+  | 'active'
+  | 'pending';
+
 export interface Amenity {
   id: string;
   name: string;
@@ -79,6 +90,9 @@ export interface Hotel {
   name: string;
   tagline: string;
   description: string;
+  managerId?: string;
+  managerEmail?: string;
+  destinationId?: string;
   location: {
     city: string;
     country: string;
@@ -92,6 +106,15 @@ export interface Hotel {
   reviewCount: number;
   heroImage: string;
   galleryImages: string[];
+  categorizedPhotos?: {
+    cover: string;
+    exterior: string[];
+    lobby: string[];
+    rooms: string[];
+    dining: string[];
+    pool: string[];
+    facilities: string[];
+  };
   startingPrice: number;
   currency: string;
   currencySymbol: string;
@@ -107,9 +130,12 @@ export interface Hotel {
     primary: string;
     accent: string;
   };
-  status: 'active' | 'pending' | 'suspended';
+  status: HotelApprovalStatus;
+  adminFeedbackNotes?: string;
   commissionRatePercent: number;
   subscriptionPlan: 'starter' | 'pro' | 'enterprise';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Reservation {
@@ -150,7 +176,7 @@ export interface Reservation {
 
 export interface GuestProfile {
   id: string;
-  hotelId: string;
+  hotelId?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -195,7 +221,7 @@ export interface TenantApplication {
   roomsCount: number;
   starRatingProposed: number;
   requestedTier: 'starter' | 'pro' | 'enterprise';
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'needs_changes';
   submittedAt: string;
   notes?: string;
 }
@@ -210,4 +236,76 @@ export interface PayoutRequest {
   status: 'pending' | 'approved' | 'processed' | 'rejected';
   bankAccountLast4: string;
   requestedAt: string;
+}
+
+export interface Destination {
+  id: string;
+  slug: string;
+  city: string;
+  country: string;
+  region?: string;
+  headline: string;
+  description: string;
+  heroImage: string;
+  galleryImages: string[];
+  attractions: string[];
+  travelTips?: string[];
+  featured: boolean;
+  climate?: string;
+  bestTimeToVisit?: string;
+}
+
+export interface MobilityVehicle {
+  id: string;
+  name: string;
+  category: 'SUV' | 'Luxury Sedan' | 'Executive Van' | 'Armored / VIP' | 'Convertible';
+  passengers: number;
+  luggage: number;
+  transmission: 'Automatic' | 'Manual';
+  pricePerDay: number;
+  priceWithDriverPerHour?: number;
+  image: string;
+  features: string[];
+  availableCities: string[];
+}
+
+export interface DMCExperience {
+  id: string;
+  title: string;
+  slug: string;
+  category: 'Tours' | 'Vacation Packages' | 'Honeymoon Packages' | 'Events';
+  destinationCity: string;
+  destinationCountry: string;
+  durationDays: number;
+  pricePerPerson: number;
+  heroImage: string;
+  galleryImages: string[];
+  highlights: string[];
+  includedServices: string[];
+  description: string;
+  groupSizeLimit?: number;
+}
+
+export interface FlightRoute {
+  id: string;
+  fromCity: string;
+  fromCode: string;
+  toCity: string;
+  toCode: string;
+  airline: string;
+  duration: string;
+  indicativePrice: number;
+  cabinClasses: string[];
+  direct: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'booking' | 'payment' | 'partner_approval' | 'system' | 'promotion';
+  date: string;
+  read: boolean;
+  linkUrl?: string;
 }

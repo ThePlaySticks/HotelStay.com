@@ -16,6 +16,7 @@ import {
   Sliders,
   ArrowRight,
   Sparkles,
+  Compass,
 } from 'lucide-react';
 
 export function SuperAdminSidebar() {
@@ -23,8 +24,9 @@ export function SuperAdminSidebar() {
 
   const NAV_ITEMS = [
     { href: '/super-admin', label: 'Platform Executive Overview', icon: BarChart3 },
-    { href: '/super-admin/hotels', label: 'Tenants & Hotels', icon: Building2 },
-    { href: '/super-admin/applications', label: 'Tenant Onboarding Applications', icon: FileCheck2 },
+    { href: '/super-admin/hotels', label: 'Tenants & Properties', icon: Building2 },
+    { href: '/super-admin/applications', label: 'Onboarding Applications', icon: FileCheck2 },
+    { href: '/super-admin/destinations', label: 'Destinations & Catalog', icon: Compass },
     { href: '/super-admin/payouts', label: 'Commissions & Payouts', icon: Banknote },
   ];
 
@@ -42,7 +44,7 @@ export function SuperAdminSidebar() {
             </span>
           </Link>
           <p className="text-[11px] text-slate-400 mt-2">
-            Global Marketplace Orchestration & Tenant Infrastructure
+            Global Marketplace Orchestration & Operations Control Center
           </p>
         </div>
 
