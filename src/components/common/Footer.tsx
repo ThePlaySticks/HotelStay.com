@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Globe, ShieldCheck, Sparkles, Building2, Plane, Car, Compass } from 'lucide-react';
 
 export function Footer() {
@@ -109,7 +110,14 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/images/hotelstay-logo.jpeg"
+              alt="HotelStay Logo"
+              width={28}
+              height={28}
+              className="rounded-full object-cover"
+            />
             <span className="font-editorial font-bold text-sm text-stone-300">HOTELSTAY</span>
             <span>© 2026 HotelStay Platform. All rights reserved.</span>
           </div>

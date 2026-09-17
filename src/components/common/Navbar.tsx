@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useMarketplace } from '@/context/MarketplaceContext';
 import {
@@ -33,10 +34,18 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
+            <Image
+              src="/images/hotelstay-logo.jpeg"
+              alt="HotelStay Logo"
+              width={36}
+              height={36}
+              className="rounded-full object-cover"
+              priority
+            />
             <span className="font-editorial text-2xl font-bold tracking-tight text-[#141413] group-hover:text-[#AF8F64] transition-colors">
               HOTELSTAY
             </span>
-            <span className="text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-full bg-[#F5EFEB] text-[#85837B] border border-[#E8E2D8]">
+            <span className="hidden sm:inline text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-full bg-[#F5EFEB] text-[#85837B] border border-[#E8E2D8]">
               Travel Marketplace
             </span>
           </Link>

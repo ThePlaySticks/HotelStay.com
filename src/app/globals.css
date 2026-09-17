@@ -163,6 +163,130 @@ body {
   animation: progressiveStagger 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.75s backwards;
 }
 
+/* Multi-directional entrance animations */
+@keyframes slideFromLeft {
+  0% { opacity: 0; transform: translateX(-60px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideFromRight {
+  0% { opacity: 0; transform: translateX(60px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideFromTop {
+  0% { opacity: 0; transform: translateY(-40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes diagonalSlide {
+  0% { opacity: 0; transform: translate(-40px, 30px) rotate(-2deg); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes rotateIn {
+  0% { opacity: 0; transform: rotate(-5deg) scale(0.92); }
+  100% { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+
+@keyframes fadeZoom {
+  0% { opacity: 0; transform: scale(1.15); filter: blur(6px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes floatPulse {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmerSlide {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-from-left {
+  animation: slideFromLeft 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-from-left-d1 {
+  animation: slideFromLeft 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s backwards;
+}
+
+.animate-from-left-d2 {
+  animation: slideFromLeft 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+}
+
+.animate-from-right {
+  animation: slideFromRight 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-from-right-d1 {
+  animation: slideFromRight 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+.animate-from-right-d2 {
+  animation: slideFromRight 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards;
+}
+
+.animate-from-top {
+  animation: slideFromTop 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-from-top-d1 {
+  animation: slideFromTop 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-scale-up-d1 {
+  animation: scaleUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+.animate-scale-up-d2 {
+  animation: scaleUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards;
+}
+
+.animate-diagonal {
+  animation: diagonalSlide 1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-diagonal-d1 {
+  animation: diagonalSlide 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+.animate-rotate-in {
+  animation: rotateIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-rotate-in-d1 {
+  animation: rotateIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s backwards;
+}
+
+.animate-fade-zoom {
+  animation: fadeZoom 1.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-fade-zoom-d1 {
+  animation: fadeZoom 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+}
+
+.animate-float {
+  animation: floatPulse 3.5s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(197,168,128,0.15), transparent);
+  background-size: 200% 100%;
+  animation: shimmerSlide 2.5s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
