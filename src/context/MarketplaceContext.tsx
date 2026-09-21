@@ -122,7 +122,13 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     try {
       const savedHotels = localStorage.getItem('hotelstay_v2_hotels');
-      if (savedHotels) setHotels(JSON.parse(savedHotels));
+      if (savedHotels) {
+        const parsed = JSON.parse(savedHotels);
+        const realOnboarded = Array.isArray(parsed)
+          ? parsed.filter((h: Hotel) => h && !['hotel-eko-royal', 'hotel-azure', 'hotel-serenita', 'hotel-mirage-dubai', 'hotel-highland-loch'].includes(h.id))
+          : [];
+        setHotels(realOnboarded);
+      }
 
       const savedDestinations = localStorage.getItem('hotelstay_v2_destinations');
       if (savedDestinations) setDestinations(JSON.parse(savedDestinations));
@@ -131,10 +137,22 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
 
       const savedReservations = localStorage.getItem('hotelstay_v2_reservations');
-      if (savedReservations) setReservations(JSON.parse(savedReservations));
+      if (savedReservations) {
+        const parsedRes = JSON.parse(savedReservations);
+        const realRes = Array.isArray(parsedRes)
+          ? parsedRes.filter((r: Reservation) => r && !['HS-78921'].includes(r.id))
+          : [];
+        setReservations(realRes);
+      }
 
       const savedRooms = localStorage.getItem('hotelstay_v2_rooms');
-      if (savedRooms) setRooms(JSON.parse(savedRooms));
+      if (savedRooms) {
+        const parsedRooms = JSON.parse(savedRooms);
+        const realRooms = Array.isArray(parsedRooms)
+          ? parsedRooms.filter((rm: IndividualRoom) => rm && !['rm-eko-401', 'rm-eko-402'].includes(rm.id))
+          : [];
+        setRooms(realRooms);
+      }
 
       const savedNotifs = localStorage.getItem('hotelstay_v2_notifs');
       if (savedNotifs) setNotifications(JSON.parse(savedNotifs));

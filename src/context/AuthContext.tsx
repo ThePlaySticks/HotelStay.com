@@ -3,84 +3,187 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole } from '@/lib/types';
 
-export interface Persona {
+export interface UserAccount {
   id: string;
   name: string;
   email: string;
   role: UserRole;
   hotelId?: string;
   hotelName?: string;
+  hotelSlug?: string;
   avatar?: string;
+  phone?: string;
+  createdAt?: string;
 }
 
-export const PERSONAS: Persona[] = [
-  {
-    id: 'persona-guest',
-    name: 'Julian Vance',
-    email: 'julian.vance@vanceholdings.co.uk',
-    role: 'guest',
-  },
-  {
-    id: 'persona-azure-admin',
-    name: 'Camille Laurent',
-    email: 'camille.laurent@azureriviera.com',
-    role: 'hotel_manager',
-    hotelId: 'hotel-azure',
-    hotelName: 'The Azure Riviera Resort & Spa',
-  },
-  {
-    id: 'persona-serenita-admin',
-    name: 'Dimitris Kostas',
-    email: 'dimitris@serenitahaven.gr',
-    role: 'hotel_manager',
-    hotelId: 'hotel-serenita',
-    hotelName: 'Serenita Coastal Haven & Spa',
-  },
-  {
-    id: 'persona-super-admin',
-    name: 'Elena Rostova (Platform Super Admin)',
-    email: 'admin@hotelstay.com',
-    role: 'super_admin',
-  },
-];
+export interface AuthModalState {
+  isOpen: boolean;
+  mode: 'signin' | 'signup';
+  role: 'guest' | 'hotel_manager' | 'super_admin';
+  title?: string;
+  description?: string;
+  redirectUrl?: string;
+  onSuccessCallback?: () => void;
+}
 
 interface AuthContextType {
-  currentPersona: Persona;
-  setPersona: (personaId: string) => void;
+  currentUser: UserAccount | null;
+  currentPersona: UserAccount; // Backwards-compatible alias for existing views
+  isAuthenticated: boolean;
   isGuest: boolean;
   isHotelAdmin: boolean;
   isSuperAdmin: boolean;
+  signIn: (email: string, password?: string, asRole?: UserRole) => Promise<UserAccount>;
+  signUp: (params: {
+    name: string;
+    email: string;
+    password?: string;
+    role: UserRole;
+    hotelName?: string;
+    hotelSlug?: string;
+  }) => Promise<UserAccount>;
+  signOut: () => void;
+  updateCurrentUser: (updates: Partial<UserAccount>) => void;
+  // Auth Modal Controls
+  authModal: AuthModalState;
+  openAuthModal: (params?: Partial<AuthModalState>) => void;
+  closeAuthModal: () => void;
 }
+
+const DEFAULT_GUEST_FALLBACK: UserAccount = {
+  id: 'guest-unauth',
+  name: 'Guest Traveler',
+  email: 'guest@hotelstay.com',
+  role: 'guest',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentPersona, setCurrentPersona] = useState<Persona>(PERSONAS[0]);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [authModal, setAuthModal] = useState<AuthModalState>({
+    isOpen: false,
+    mode: 'signup',
+    role: 'guest',
+  });
 
+  // Load active session from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('hotelstay_persona_id');
-    if (saved) {
-      const found = PERSONAS.find(p => p.id === saved);
-      if (found) setCurrentPersona(found);
+    try {
+      const savedSession = localStorage.getItem('hotelstay_active_user');
+      if (savedSession) {
+        setCurrentUser(JSON.parse(savedSession));
+      }
+    } catch {
+      // ignore storage error
     }
   }, []);
 
-  const handleSetPersona = (personaId: string) => {
-    const found = PERSONAS.find(p => p.id === personaId);
-    if (found) {
-      setCurrentPersona(found);
-      localStorage.setItem('hotelstay_persona_id', found.id);
+  const signIn = async (email: string, _password?: string, asRole?: UserRole): Promise<UserAccount> => {
+    const role = asRole || (email.includes('manager') || email.includes('admin') ? 'hotel_manager' : 'guest');
+    const name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const account: UserAccount = {
+      id: `usr-${Date.now()}`,
+      name: name || 'User',
+      email,
+      role,
+      createdAt: new Date().toISOString(),
+    };
+
+    setCurrentUser(account);
+    try {
+      localStorage.setItem('hotelstay_active_user', JSON.stringify(account));
+    } catch {
+      // ignore
+    }
+    return account;
+  };
+
+  const signUp = async (params: {
+    name: string;
+    email: string;
+    password?: string;
+    role: UserRole;
+    hotelName?: string;
+    hotelSlug?: string;
+  }): Promise<UserAccount> => {
+    const account: UserAccount = {
+      id: `usr-${Date.now()}`,
+      name: params.name,
+      email: params.email,
+      role: params.role,
+      hotelName: params.hotelName,
+      hotelSlug: params.hotelSlug,
+      createdAt: new Date().toISOString(),
+    };
+
+    setCurrentUser(account);
+    try {
+      localStorage.setItem('hotelstay_active_user', JSON.stringify(account));
+    } catch {
+      // ignore
+    }
+    return account;
+  };
+
+  const signOut = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('hotelstay_active_user');
+    } catch {
+      // ignore
     }
   };
+
+  const updateCurrentUser = (updates: Partial<UserAccount>) => {
+    setCurrentUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
+      try {
+        localStorage.setItem('hotelstay_active_user', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const openAuthModal = (params?: Partial<AuthModalState>) => {
+    setAuthModal({
+      isOpen: true,
+      mode: params?.mode || 'signup',
+      role: params?.role || 'guest',
+      title: params?.title,
+      description: params?.description,
+      redirectUrl: params?.redirectUrl,
+      onSuccessCallback: params?.onSuccessCallback,
+    });
+  };
+
+  const closeAuthModal = () => {
+    setAuthModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const isAuthenticated = currentUser !== null && currentUser.id !== 'guest-unauth';
+  const role = currentUser?.role || 'guest';
 
   return (
     <AuthContext.Provider
       value={{
-        currentPersona,
-        setPersona: handleSetPersona,
-        isGuest: currentPersona.role === 'guest',
-        isHotelAdmin: currentPersona.role === 'hotel_manager' || currentPersona.role === 'hotel_owner',
-        isSuperAdmin: currentPersona.role === 'super_admin',
+        currentUser,
+        currentPersona: currentUser || DEFAULT_GUEST_FALLBACK,
+        isAuthenticated,
+        isGuest: role === 'guest',
+        isHotelAdmin: role === 'hotel_manager' || role === 'hotel_owner',
+        isSuperAdmin: role === 'super_admin',
+        signIn,
+        signUp,
+        signOut,
+        updateCurrentUser,
+        authModal,
+        openAuthModal,
+        closeAuthModal,
       }}
     >
       {children}

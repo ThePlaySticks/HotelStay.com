@@ -32,9 +32,9 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hotels, createReservation } = useMarketplace();
-  const { currentPersona } = useAuth();
+  const { currentUser, isAuthenticated, openAuthModal } = useAuth();
 
-  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0] || null;
+  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || null;
   const initialRoomId = searchParams.get('roomId') || hotel?.roomTypes?.[0]?.id;
   const initialRoom = hotel?.roomTypes?.find((r) => r.id === initialRoomId) || hotel?.roomTypes?.[0] || null;
 
@@ -48,10 +48,10 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const [adults, setAdults] = useState(Number(searchParams.get('guests')) || 2);
 
   // Guest Information
-  const [firstName, setFirstName] = useState(currentPersona.name.split(' ')[0] || 'Julian');
-  const [lastName, setLastName] = useState(currentPersona.name.split(' ')[1] || 'Vance');
-  const [email, setEmail] = useState(currentPersona.email || 'julian.vance@vanceholdings.co.uk');
-  const [phone, setPhone] = useState('+44 7911 123456');
+  const [firstName, setFirstName] = useState(currentUser?.name.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(currentUser?.name.split(' ')[1] || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '+1 (555) 019-2834');
   const [specialRequests, setSpecialRequests] = useState('High floor preferred. Chilled sparkling water upon check-in.');
   const [estimatedArrival, setEstimatedArrival] = useState('15:00 - 17:00');
 

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/common/Navbar';
 import { Footer } from '@/components/common/Footer';
 import { useMarketplace } from '@/context/MarketplaceContext';
+import { useAuth } from '@/context/AuthContext';
 import { RoomType } from '@/lib/types';
 import {
   Star,
@@ -34,8 +35,9 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
   const resolvedParams = use(params);
   const router = useRouter();
   const { hotels, reviews, isWishlisted, toggleWishlist, showToast } = useMarketplace();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
-  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || hotels[0] || null;
+  const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || null;
   const hotelReviews = hotel ? reviews.filter((r) => r.hotelId === hotel.id) : [];
   const wishlisted = hotel ? isWishlisted(hotel.id) : false;
 
@@ -68,7 +70,20 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
       checkOut,
       guests: guests.toString(),
     });
-    router.push(`/book/${hotel.slug}?${query.toString()}`);
+
+    const targetUrl = `/book/${hotel.slug}?${query.toString()}`;
+
+    if (!isAuthenticated) {
+      openAuthModal({
+        mode: 'signup',
+        role: 'guest',
+        title: 'Sign Up to Complete Reservation',
+        description: `Create an account or sign in to confirm your stay at ${hotel.name}.`,
+        redirectUrl: targetUrl,
+      });
+    } else {
+      router.push(targetUrl);
+    }
   };
 
   const handleShare = () => {

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export function Navbar() {
-  const { currentPersona, isHotelAdmin, isSuperAdmin } = useAuth();
+  const { currentUser, currentPersona, isHotelAdmin, isSuperAdmin, isAuthenticated, openAuthModal } = useAuth();
   const { wishlist, notifications, markNotificationAsRead } = useMarketplace();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -142,23 +142,34 @@ export function Navbar() {
 
             <div className="h-4 w-[1px] bg-[#E8E2D8]" />
 
-            {/* User Account Dropdown / Link */}
-            <Link
-              href={isSuperAdmin ? '/super-admin' : isHotelAdmin ? '/hotel-admin' : '/guest'}
-              className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full border border-[#E8E2D8] bg-white hover:border-[#D5CCC0] transition-colors shadow-2xs"
-            >
-              <div className="w-7 h-7 rounded-full bg-[#141413] text-[#FAF8F5] text-xs font-semibold flex items-center justify-center">
-                {currentPersona.name.charAt(0)}
-              </div>
-              <div className="text-left text-xs">
-                <span className="font-semibold block text-[#141413] leading-none">
-                  {currentPersona.name.split(' ')[0]}
-                </span>
-                <span className="text-[10px] text-[#85837B]">
-                  {isSuperAdmin ? 'Admin' : isHotelAdmin ? 'Hotel Portal' : 'Account'}
-                </span>
-              </div>
-            </Link>
+            {/* User Account / Sign In Trigger */}
+            {isAuthenticated && currentUser ? (
+              <Link
+                href={isSuperAdmin ? '/super-admin' : isHotelAdmin ? '/hotel-admin' : '/guest'}
+                className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full border border-[#E8E2D8] bg-white hover:border-[#D5CCC0] transition-colors shadow-2xs"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#141413] text-[#FAF8F5] text-xs font-semibold flex items-center justify-center">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="text-left text-xs">
+                  <span className="font-semibold block text-[#141413] leading-none">
+                    {currentUser.name.split(' ')[0]}
+                  </span>
+                  <span className="text-[10px] text-[#85837B]">
+                    {isSuperAdmin ? 'Admin' : isHotelAdmin ? 'Hotel Portal' : 'Account'}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuthModal({ mode: 'signin', role: 'guest' })}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8E2D8] bg-white hover:bg-stone-50 text-xs font-semibold text-[#141413] transition-colors shadow-2xs cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-[#C5A880]" />
+                <span>Sign In / Join</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Trigger */}

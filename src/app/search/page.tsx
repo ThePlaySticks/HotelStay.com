@@ -1,413 +1,395 @@
 'use client';
 
 import React, { useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/common/Navbar';
 import { Footer } from '@/components/common/Footer';
-import { FloatingSearchBar } from '@/components/marketplace/FloatingSearchBar';
-import { HotelCard } from '@/components/marketplace/HotelCard';
-import { InteractiveMap } from '@/components/marketplace/InteractiveMap';
 import { useMarketplace } from '@/context/MarketplaceContext';
+import { useAuth } from '@/context/AuthContext';
 import {
-  SlidersHorizontal,
-  Map as MapIcon,
-  ListFilter,
-  Check,
-  RotateCcw,
+  Search,
+  MapPin,
+  Star,
   Sparkles,
-  ChevronDown,
-  X,
   Building2,
-  ArrowRight,
+  Palmtree,
+  Waves,
   Compass,
+  ArrowRight,
+  Filter,
+  SlidersHorizontal,
+  ChevronRight,
+  CheckCircle2,
+  Calendar,
+  Users,
 } from 'lucide-react';
 
-function SearchContent() {
+function DiscoverContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const destQuery = searchParams.get('dest') || '';
   const { approvedHotels, destinations } = useMarketplace();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
-  // Local filter states
-  const [selectedCity, setSelectedCity] = useState<string>(destQuery);
-  const [maxPrice, setMaxPrice] = useState<number>(2500);
-  const [selectedTiers, setSelectedTiers] = useState<string[]>([]);
-  const [selectedStars, setSelectedStars] = useState<number[]>([]);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'recommended' | 'price_low' | 'price_high' | 'rating'>('recommended');
-  const [mobileView, setMobileView] = useState<'list' | 'map'>('list');
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [highlightedHotelId, setHighlightedHotelId] = useState<string | undefined>(undefined);
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState(destQuery);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'hotels' | 'vacation_spots'>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
 
-  const ALL_AMENITIES = [
-    'Infinity Cliffside Pool',
-    'Rooftop Ocean Infinity Pool',
-    'Private Beach Club',
-    'Michelin-Starred Dining',
-    'Holistic Thermal Spa & Hammam',
-    'Caldera Heated Jacuzzi',
-    '24/7 Dedicated Butler Service',
-    'Chauffeured Armored Escort Available',
-    'Subterranean Vintage Wine Vault',
-  ];
-
-  const ALL_TIERS = ['5-Star Luxury', 'Ocean Resort', 'Heritage Chateau', 'Boutique'];
-
-  // Filter computation
+  // Filtered onboarded hotels
   const filteredHotels = useMemo(() => {
-    return approvedHotels
-      .filter((hotel) => {
-        // City / Country filter
-        if (
-          selectedCity &&
-          !hotel.location.city.toLowerCase().includes(selectedCity.toLowerCase()) &&
-          !hotel.location.country.toLowerCase().includes(selectedCity.toLowerCase())
-        ) {
-          return false;
-        }
-        // Price filter
-        if (hotel.startingPrice > maxPrice) {
-          return false;
-        }
-        // Tier filter
-        if (selectedTiers.length > 0 && !selectedTiers.includes(hotel.luxuryTier)) {
-          return false;
-        }
-        // Stars filter
-        if (selectedStars.length > 0 && !selectedStars.includes(hotel.starRating)) {
-          return false;
-        }
-        // Amenities filter
-        if (selectedAmenities.length > 0 && !selectedAmenities.some((a) => hotel.amenities.includes(a))) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'price_low') return a.startingPrice - b.startingPrice;
-        if (sortBy === 'price_high') return b.startingPrice - a.startingPrice;
-        if (sortBy === 'rating') return b.guestRating - a.guestRating;
-        return 0; // recommended
+    return approvedHotels.filter((hotel) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        hotel.name.toLowerCase().includes(q) ||
+        hotel.location.city.toLowerCase().includes(q) ||
+        hotel.location.country.toLowerCase().includes(q)
+      );
+    });
+  }, [approvedHotels, searchQuery]);
+
+  // Filtered vacation spots & beach houses (curated scenic destinations that don't need onboarding)
+  const filteredDestinations = useMemo(() => {
+    return destinations.filter((dest) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        dest.city.toLowerCase().includes(q) ||
+        dest.country.toLowerCase().includes(q) ||
+        dest.headline.toLowerCase().includes(q) ||
+        dest.description.toLowerCase().includes(q)
+      );
+    });
+  }, [destinations, searchQuery]);
+
+  const handleBookHotelClick = (e: React.MouseEvent, hotelSlug: string) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      openAuthModal({
+        mode: 'signup',
+        role: 'guest',
+        title: 'Sign Up to Book Suite',
+        description: 'Create an account or sign in to complete your reservation and payments.',
+        redirectUrl: `/hotels/${hotelSlug}`,
       });
-  }, [approvedHotels, selectedCity, maxPrice, selectedTiers, selectedStars, selectedAmenities, sortBy]);
-
-  const handleResetFilters = () => {
-    setSelectedCity('');
-    setMaxPrice(2500);
-    setSelectedTiers([]);
-    setSelectedStars([]);
-    setSelectedAmenities([]);
-    setSortBy('recommended');
+    } else {
+      router.push(`/hotels/${hotelSlug}`);
+    }
   };
-
-  const toggleTier = (tier: string) => {
-    setSelectedTiers((prev) =>
-      prev.includes(tier) ? prev.filter((t) => t !== tier) : [...prev, tier]
-    );
-  };
-
-  const toggleStar = (star: number) => {
-    setSelectedStars((prev) =>
-      prev.includes(star) ? prev.filter((s) => s !== star) : [...prev, star]
-    );
-  };
-
-  const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities((prev) =>
-      prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]
-    );
-  };
-
-  const FilterPanel = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
-        <h3 className="font-editorial text-lg font-bold text-[#141413] flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-[#C5A880]" />
-          Refine Results
-        </h3>
-        <button
-          onClick={handleResetFilters}
-          className="text-xs font-semibold text-[#85837B] hover:text-[#141413] flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          Reset
-        </button>
-      </div>
-
-      {/* Destination Filter */}
-      <div>
-        <label className="block text-xs font-semibold text-[#141413] mb-2">Destination / Region</label>
-        <select
-          value={selectedCity}
-          onChange={(e) => setSelectedCity(e.target.value)}
-          className="w-full bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl px-3 py-2 text-xs font-semibold text-[#141413] focus:outline-hidden cursor-pointer"
-        >
-          <option value="">All Global Destinations</option>
-          {destinations.map((d) => (
-            <option key={d.id} value={d.city}>
-              {d.city}, {d.country}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Max Price Range */}
-      <div>
-        <div className="flex items-center justify-between text-xs font-semibold text-[#141413] mb-2">
-          <span>Max Nightly Rate</span>
-          <span className="text-[#AF8F64] font-bold">Up to ${maxPrice}</span>
-        </div>
-        <input
-          type="range"
-          min={300}
-          max={2500}
-          step={50}
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(Number(e.target.value))}
-          className="w-full accent-[#141413] cursor-pointer"
-        />
-        <div className="flex justify-between text-[10px] text-[#85837B] mt-1 font-mono">
-          <span>$300</span>
-          <span>$2,500+</span>
-        </div>
-      </div>
-
-      {/* Luxury Tier */}
-      <div>
-        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Sanctuary Collection</label>
-        <div className="space-y-1.5">
-          {ALL_TIERS.map((tier) => {
-            const active = selectedTiers.includes(tier);
-            return (
-              <button
-                key={tier}
-                onClick={() => toggleTier(tier)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                  active
-                    ? 'bg-[#141413] text-white'
-                    : 'bg-[#FAF8F5] text-[#575650] hover:bg-[#F0EAE1]'
-                }`}
-              >
-                <span>{tier}</span>
-                {active && <Check className="w-3.5 h-3.5 text-[#C5A880]" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Star Rating */}
-      <div>
-        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Star Rating</label>
-        <div className="flex gap-2">
-          {[5, 4].map((stars) => {
-            const active = selectedStars.includes(stars);
-            return (
-              <button
-                key={stars}
-                onClick={() => toggleStar(stars)}
-                className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
-                  active
-                    ? 'bg-[#141413] text-white border-[#141413]'
-                    : 'bg-white border-[#E8E2D8] text-[#575650] hover:border-[#D5CCC0]'
-                }`}
-              >
-                <span>{stars} Stars</span>
-                {active && <Check className="w-3 h-3 text-[#C5A880]" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Curated Amenities */}
-      <div>
-        <label className="block text-xs font-semibold text-[#141413] mb-2.5">Curated Amenities</label>
-        <div className="space-y-1.5">
-          {ALL_AMENITIES.map((amenity) => {
-            const active = selectedAmenities.includes(amenity);
-            return (
-              <label
-                key={amenity}
-                className="flex items-center gap-2.5 text-xs text-[#575650] hover:text-[#141413] cursor-pointer py-1"
-              >
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleAmenity(amenity)}
-                  className="rounded-md border-[#D5CCC0] text-[#141413] focus:ring-0 w-3.5 h-3.5 accent-[#141413]"
-                />
-                <span className="leading-tight">{amenity}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#141413] flex flex-col font-sans">
       <Navbar />
 
-      {/* SEARCH HEADER */}
-      <section className="bg-white border-b border-[#E8E2D8] py-6 px-4 sm:px-6 lg:px-8 shadow-2xs">
-        <div className="max-w-7xl mx-auto">
-          <FloatingSearchBar compact />
-        </div>
-      </section>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {/* Results Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-[#E8E2D8] gap-4">
-          <div>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
-              {selectedCity ? `Stays in ${selectedCity}` : 'All Verified Sanctuaries'}
-            </h1>
-            <p className="text-xs text-[#85837B] mt-1">
-              Showing <span className="font-bold text-[#141413]">{filteredHotels.length}</span> verified properties meeting criteria
-            </p>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
+        {/* =========================================================================
+            BEUI MINIMALIST DISCOVER HEADER & SEARCH BAR
+            ========================================================================= */}
+        <div className="space-y-6 text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E2D8] shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-[#C5A880]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#575650]">
+              Curated Travel Discovery
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Sort Dropdown */}
-            <div className="relative flex items-center gap-2 text-xs font-semibold text-[#575650]">
-              <span className="hidden sm:inline">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white border border-[#E8E2D8] rounded-full px-4 py-2 text-xs font-semibold text-[#141413] focus:outline-hidden cursor-pointer shadow-2xs"
-              >
-                <option value="recommended">HotelStay Curated</option>
-                <option value="rating">Highest Guest Rating</option>
-                <option value="price_low">Price: Low to High</option>
-                <option value="price_high">Price: High to Low</option>
-              </select>
-            </div>
+          <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#141413]">
+            Discover Exceptional Stays & Sanctuaries
+          </h1>
 
-            {/* Mobile Filter Trigger */}
-            <button
-              onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#141413] text-white text-xs font-semibold"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#C5A880]" />
-              Filters
-            </button>
+          <p className="text-sm sm:text-base text-[#575650] leading-relaxed">
+            Explore verified onboarded luxury hotels and scenic vacation spots across the world’s most coveted coastlines and retreats.
+          </p>
 
-            {/* Mobile View Toggle */}
-            <div className="sm:hidden flex rounded-full border border-[#E8E2D8] bg-white p-1">
-              <button
-                onClick={() => setMobileView('list')}
-                className={`p-1.5 rounded-full ${mobileView === 'list' ? 'bg-[#141413] text-white' : 'text-stone-500'}`}
-              >
-                <ListFilter className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setMobileView('map')}
-                className={`p-1.5 rounded-full ${mobileView === 'map' ? 'bg-[#141413] text-white' : 'text-stone-500'}`}
-              >
-                <MapIcon className="w-4 h-4" />
-              </button>
+          {/* BeUI Sleek Search Box */}
+          <div className="relative max-w-2xl mx-auto pt-2">
+            <div className="relative flex items-center bg-white rounded-full border border-[#E8E2D8] shadow-lg p-2 hover:border-[#C5A880] transition-colors">
+              <div className="pl-4 text-[#85837B]">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by city, country, hotel name, or beach retreat..."
+                className="w-full px-3.5 py-2.5 text-sm bg-transparent placeholder-stone-400 focus:outline-none text-[#141413]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="px-3 text-xs font-semibold text-stone-400 hover:text-black cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 2-COLUMN GRID (Filters + Hotel Listings / Map) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* DESKTOP FILTER SIDEBAR */}
-          <aside className="hidden lg:block lg:col-span-3 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs sticky top-28">
-            {FilterPanel}
-          </aside>
+        {/* =========================================================================
+            BEUI CATEGORY PILL FILTER BAR
+            ========================================================================= */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap pt-2">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer ${
+              categoryFilter === 'all'
+                ? 'bg-[#141413] text-white shadow-md'
+                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
+            }`}
+          >
+            All Explorations ({filteredHotels.length + filteredDestinations.length})
+          </button>
+          <button
+            onClick={() => setCategoryFilter('hotels')}
+            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+              categoryFilter === 'hotels'
+                ? 'bg-[#141413] text-white shadow-md'
+                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
+            <span>Onboarded Hotels ({filteredHotels.length})</span>
+          </button>
+          <button
+            onClick={() => setCategoryFilter('vacation_spots')}
+            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+              categoryFilter === 'vacation_spots'
+                ? 'bg-[#141413] text-white shadow-md'
+                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
+            }`}
+          >
+            <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Vacation Spots & Beach Houses ({filteredDestinations.length})</span>
+          </button>
+        </div>
 
-          {/* HOTEL LISTINGS & MAP */}
-          <div className="lg:col-span-9 space-y-6">
+        {/* =========================================================================
+            SECTION 1: ONBOARDED REAL HOTELS (Created via Operate)
+            ========================================================================= */}
+        {(categoryFilter === 'all' || categoryFilter === 'hotels') && (
+          <div className="space-y-6 pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E8E2D8] gap-2">
+              <div>
+                <div className="text-xs uppercase font-bold tracking-widest text-[#C5A880]">
+                  Verified Hospitality
+                </div>
+                <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
+                  Onboarded Luxury Hotels & Guesthouses
+                </h2>
+              </div>
+              <span className="text-xs text-[#85837B] font-semibold">
+                {filteredHotels.length} {filteredHotels.length === 1 ? 'Property Available' : 'Properties Available'}
+              </span>
+            </div>
+
             {filteredHotels.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-[#E8E2D8] max-w-xl mx-auto space-y-4">
-                <div className="w-14 h-14 rounded-full bg-amber-50 text-[#C5A880] flex items-center justify-center mx-auto">
-                  <Building2 className="w-7 h-7" />
+              /* BeUI Host Call-to-action Banner when no hotels are onboarded */
+              <div className="p-8 sm:p-12 rounded-3xl bg-white border border-[#E8E2D8] text-center space-y-4 shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-[#FAF8F5] border border-[#E8E2D8] flex items-center justify-center mx-auto text-[#C5A880]">
+                  <Building2 className="w-6 h-6" />
                 </div>
                 <h3 className="font-editorial text-2xl font-bold text-[#141413]">
-                  {selectedCity ? `Hotels coming soon to ${selectedCity}` : 'No matching sanctuaries found'}
+                  No Onboarded Hotels Yet
                 </h3>
-                <p className="text-xs text-[#575650] max-w-md mx-auto leading-relaxed">
-                  We are actively expanding our curated stays in this region. Try adjusting your filters or explore other destinations.
+                <p className="text-sm text-[#575650] max-w-lg mx-auto leading-relaxed">
+                  Hotels only appear here once onboarded by real property owners and hosts. Explore scenic vacation spots below, or list your hotel to claim your custom domain.
                 </p>
-                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    onClick={handleResetFilters}
-                    className="px-6 py-2.5 rounded-full bg-[#141413] text-white text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors"
-                  >
-                    Reset All Filters
-                  </button>
+                <div className="pt-2">
                   <Link
-                    href="/destinations"
-                    className="px-6 py-2.5 rounded-full border border-[#D5CCC0] bg-white text-xs font-bold uppercase tracking-wider text-[#141413] hover:bg-[#FAF8F5]"
+                    href="/hotel-admin"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md"
                   >
-                    View All Destinations
+                    <span>Onboard a Hotel in Operate</span>
+                    <ArrowRight className="w-4 h-4 text-[#C5A880]" />
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredHotels.map((hotel) => (
                   <div
                     key={hotel.id}
-                    onMouseEnter={() => setHighlightedHotelId(hotel.id)}
-                    onMouseLeave={() => setHighlightedHotelId(undefined)}
+                    className="group bg-white rounded-3xl overflow-hidden border border-[#E8E2D8] hover:border-[#C5A880]/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
                   >
-                    <HotelCard hotel={hotel} />
+                    <div>
+                      {/* Cover Photo */}
+                      <Link href={`/hotels/${hotel.slug}`} className="block relative aspect-[16/10] overflow-hidden bg-stone-100">
+                        <Image
+                          src={hotel.heroImage}
+                          alt={hotel.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 400px"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-[#141413] shadow-xs">
+                          {hotel.luxuryTier || 'Luxury Hotel'}
+                        </div>
+                        <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-xs font-bold text-white font-mono">
+                          ${hotel.startingPrice} <span className="text-[10px] font-normal text-stone-300">/ night</span>
+                        </div>
+                      </Link>
+
+                      {/* Content */}
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center gap-1.5 text-xs text-[#85837B]">
+                          <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
+                          <span>{hotel.location.city}, {hotel.location.country}</span>
+                        </div>
+
+                        <Link href={`/hotels/${hotel.slug}`} className="block">
+                          <h3 className="font-editorial text-xl font-bold text-[#141413] group-hover:text-[#AF8F64] transition-colors leading-snug">
+                            {hotel.name}
+                          </h3>
+                        </Link>
+
+                        <p className="text-xs text-[#575650] line-clamp-2 leading-relaxed">
+                          {hotel.tagline || hotel.description}
+                        </p>
+
+                        <div className="pt-2 flex flex-wrap gap-1.5">
+                          {hotel.amenities.slice(0, 3).map((amenity, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E8E2D8] text-[#575650]"
+                            >
+                              {amenity}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Footer */}
+                    <div className="p-6 pt-0 border-t border-[#F0EAE1] flex items-center justify-between gap-3 mt-4">
+                      <Link
+                        href={`/hotels/${hotel.slug}`}
+                        className="text-xs font-semibold text-[#575650] hover:text-[#141413]"
+                      >
+                        View Suite Details
+                      </Link>
+
+                      <button
+                        onClick={(e) => handleBookHotelClick(e, hotel.slug)}
+                        className="px-4 py-2 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      >
+                        <span>Reserve</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[#C5A880]" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
 
-            {/* Interactive Map Visual */}
-            {filteredHotels.length > 0 && (
-              <div className="mt-12 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs">
-                <div className="flex items-center justify-between mb-4">
+        {/* =========================================================================
+            SECTION 2: SCENIC VACATION SPOTS & BEACH HOUSES (Open to All)
+            ========================================================================= */}
+        {(categoryFilter === 'all' || categoryFilter === 'vacation_spots') && (
+          <div className="space-y-6 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E8E2D8] gap-2">
+              <div>
+                <div className="text-xs uppercase font-bold tracking-widest text-emerald-600">
+                  Scenic Getaways
+                </div>
+                <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
+                  Vacation Spots & Beach House Destinations
+                </h2>
+              </div>
+              <span className="text-xs text-[#85837B] font-semibold">
+                {filteredDestinations.length} Destinations
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredDestinations.map((dest) => (
+                <div
+                  key={dest.id}
+                  className="group bg-white rounded-3xl overflow-hidden border border-[#E8E2D8] hover:border-[#C5A880]/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                >
                   <div>
-                    <h3 className="font-editorial text-xl font-bold text-[#141413]">Interactive Regional Map</h3>
-                    <p className="text-xs text-[#85837B]">Explore coordinates and location topography</p>
+                    {/* Destination Cover */}
+                    <Link href={`/destinations/${dest.slug}`} className="block relative aspect-[16/10] overflow-hidden bg-stone-100">
+                      <Image
+                        src={dest.heroImage}
+                        alt={dest.city}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 400px"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+                        {dest.region}
+                      </div>
+                      <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-xs font-bold text-[#141413]">
+                        {dest.climate || 'Tropical & Scenic'}
+                      </div>
+                    </Link>
+
+                    {/* Content */}
+                    <div className="p-6 space-y-3">
+                      <div className="flex items-center gap-1.5 text-xs text-[#85837B]">
+                        <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{dest.city}, {dest.country}</span>
+                      </div>
+
+                      <Link href={`/destinations/${dest.slug}`} className="block">
+                        <h3 className="font-editorial text-xl font-bold text-[#141413] group-hover:text-[#AF8F64] transition-colors leading-snug">
+                          {dest.headline || `${dest.city} Coastal Sanctuaries`}
+                        </h3>
+                      </Link>
+
+                      <p className="text-xs text-[#575650] line-clamp-2 leading-relaxed">
+                        {dest.description}
+                      </p>
+
+                      <div className="pt-2 flex flex-wrap gap-1.5">
+                        {dest.attractions.slice(0, 3).map((attr, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E8E2D8] text-[#575650]"
+                          >
+                            {attr}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Link */}
+                  <div className="p-6 pt-0 border-t border-[#F0EAE1] flex items-center justify-between gap-3 mt-4">
+                    <span className="text-[11px] text-[#85837B]">
+                      Best: {dest.bestTimeToVisit || 'Year-round'}
+                    </span>
+
+                    <Link
+                      href={`/destinations/${dest.slug}`}
+                      className="px-4 py-2 rounded-full bg-[#FAF8F5] hover:bg-[#141413] text-[#141413] hover:text-white border border-[#E8E2D8] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <span>Explore Destination</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
-                <InteractiveMap hotels={filteredHotels} highlightedHotelId={highlightedHotelId} />
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* MOBILE FILTER MODAL DRAWER */}
-      {mobileFilterOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in">
-          <div className="bg-white w-full max-w-md h-full p-6 overflow-y-auto space-y-6 animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
-              <h3 className="font-editorial text-xl font-bold text-[#141413]">Filter Properties</h3>
-              <button onClick={() => setMobileFilterOpen(false)} className="p-2 rounded-full hover:bg-stone-100">
-                <X className="w-5 h-5" />
-              </button>
+              ))}
             </div>
-            {FilterPanel}
-            <button
-              onClick={() => setMobileFilterOpen(false)}
-              className="w-full py-3.5 rounded-full bg-[#141413] text-white text-xs font-bold uppercase tracking-wider shadow-md"
-            >
-              Show {filteredHotels.length} Results
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
       <Footer />
     </div>
   );
 }
 
-export default function SearchPage() {
+export default function DiscoverSearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">Loading search results...</div>}>
-      <SearchContent />
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center text-xs text-stone-400">Loading Discover...</div>}>
+      <DiscoverContent />
     </Suspense>
   );
 }

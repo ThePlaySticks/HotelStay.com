@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useMarketplace } from '@/context/MarketplaceContext';
+import { HotelOnboardingWizard } from '@/components/hotel-admin/HotelOnboardingWizard';
 import {
   Users,
   BedDouble,
@@ -17,347 +19,369 @@ import {
   Sparkles,
   ShieldCheck,
   Building2,
+  Globe,
+  Plus,
+  Share2,
+  Copy,
+  ExternalLink,
+  Brush,
+  Filter,
 } from 'lucide-react';
 
 export default function HotelAdminDashboard() {
-  const { currentPersona } = useAuth();
-  const { hotels, reservations, rooms, reviews, updateReservationStatus } = useMarketplace();
+  const { currentUser, isHotelAdmin } = useAuth();
+  const { hotels, reservations, rooms, updateReservationStatus, updateRoomStatus, showToast } = useMarketplace();
 
-  // Strict tenant data isolation
-  const currentHotelId = currentPersona.hotelId || 'hotel-azure';
-  const currentHotel = hotels.find((h) => h.id === currentHotelId) || hotels[0] || null;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'rooms' | 'bookings'>('overview');
+
+  // Find hotel managed by current user or first available onboarded hotel
+  const currentHotel =
+    hotels.find((h) => h.managerId === currentUser?.id || h.slug === currentUser?.hotelSlug) ||
+    hotels[0] ||
+    null;
+
+  const currentHotelId = currentHotel?.id || '';
 
   const tenantReservations = reservations.filter((r) => r.hotelId === currentHotelId);
   const tenantRooms = rooms.filter((rm) => rm.hotelId === currentHotelId);
-  const tenantReviews = reviews.filter((rev) => rev.hotelId === currentHotelId);
 
-  // Operational metrics
-  const totalRooms = tenantRooms.length || 9;
+  // Operational metrics calculated strictly from real data
+  const totalRooms = tenantRooms.length || (currentHotel ? currentHotel.roomTypes.length : 0);
   const occupiedRooms = tenantRooms.filter((r) => r.status === 'occupied').length;
-  const occupancyRate = Math.round((occupiedRooms / totalRooms) * 100);
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
   const availableRooms = tenantRooms.filter((r) => r.status === 'available').length;
   const cleaningRooms = tenantRooms.filter((r) => r.status === 'cleaning').length;
 
-  const arrivalsToday = tenantReservations.filter((r) => r.checkInDate === '2026-09-14');
-  const departuresToday = tenantReservations.filter((r) => r.checkOutDate === '2026-09-15');
-
   const totalRevenue = tenantReservations
-    .filter((r) => r.paymentStatus === 'paid')
+    .filter((r) => r.paymentStatus === 'paid' || r.status === 'confirmed')
     .reduce((sum, r) => sum + r.totalAmount, 0);
 
-  if (!currentHotel) {
+  const copyDomainLink = () => {
+    if (!currentHotel) return;
+    const url = `${window.location.origin}/hotels/${currentHotel.slug}`;
+    navigator.clipboard.writeText(url);
+    showToast({
+      title: 'Domain Link Copied',
+      description: url,
+      type: 'success',
+    });
+  };
+
+  // If no hotel is onboarded yet or user requested onboarding
+  if (!currentHotel || showOnboarding) {
     return (
-      <main className="p-6 sm:p-10 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4 max-w-md">
-          <Building2 className="w-12 h-12 text-[#C5A880] mx-auto" />
-          <h2 className="font-editorial text-2xl font-bold text-[#141413]">No Property Registered</h2>
-          <p className="text-sm text-[#575650]">
-            Your hotel workspace is ready. Onboard your first property to unlock the full management dashboard.
-          </p>
+      <main className="min-h-screen bg-[#080A0F] text-white p-6 sm:p-12 flex flex-col items-center justify-center">
+        <div className="w-full max-w-4xl space-y-8">
+          {hotels.length > 0 && showOnboarding && (
+            <button
+              onClick={() => setShowOnboarding(false)}
+              className="text-xs text-stone-400 hover:text-white flex items-center gap-1.5 cursor-pointer mb-2"
+            >
+              ← Back to Active Dashboard
+            </button>
+          )}
+
+          <HotelOnboardingWizard onComplete={() => setShowOnboarding(false)} />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="p-6 sm:p-10 space-y-8">
-      {/* Top Banner with Manager Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E8E2D8] gap-4">
+    <main className="min-h-screen bg-[#080A0F] text-white p-6 sm:p-10 space-y-8">
+      {/* =========================================================================
+          RAREUI LUXURY HEADER & TENANT DOMAIN BAR
+          ========================================================================= */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
-              Tenant Isolated Workspace
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Tenant Domain
             </span>
-            <span className="text-xs text-stone-500">
-              Property ID: <span className="font-mono text-stone-800">{currentHotel?.id || currentHotelId}</span>
+            <span className="text-xs text-stone-400">
+              Property ID: <span className="font-mono text-stone-300">{currentHotel.id}</span>
             </span>
           </div>
-          <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413] mt-2">
-            Good morning, {currentPersona.name}
+
+          <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-white mt-2 flex items-center gap-3">
+            <span>{currentHotel.name}</span>
           </h1>
-          <p className="text-xs text-[#575650] mt-0.5">
-            Operational dashboard for <span className="font-semibold text-black">{currentHotel?.name || 'Sanctuary'}</span>. Here is your daily property snapshot.
+
+          <p className="text-xs sm:text-sm text-stone-400 mt-1">
+            {currentHotel.tagline} • <span className="text-[#C5A880]">{currentHotel.location.city}, {currentHotel.location.country}</span>
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Action Controls & Public Domain Preview */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={copyDomainLink}
+            className="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-stone-300 hover:text-white flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            title="Copy Public URL"
+          >
+            <Copy className="w-3.5 h-3.5 text-[#C5A880]" />
+            <span>Copy Domain</span>
+          </button>
+
           <Link
-            href={currentHotel?.slug ? `/hotel/${currentHotel.slug}` : '/search'}
+            href={`/hotels/${currentHotel.slug}`}
             target="_blank"
-            className="px-4 py-2 rounded-full border border-[#D5CCC0] bg-white hover:bg-[#FAF8F5] text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition-colors shadow-2xs"
+            className="px-5 py-2.5 rounded-2xl bg-[#1A2233] hover:bg-[#222C42] border border-[#C5A880]/30 text-xs font-semibold text-[#C5A880] hover:text-white flex items-center gap-2 transition-all shadow-md"
           >
-            <span>View Public Hotel Page</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
-          <Link
-            href="/hotel-admin/reservations"
-            className="px-4 py-2 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-semibold shadow-xs"
-          >
-            + Create Walk-in Reservation
-          </Link>
-        </div>
-      </div>
-
-      {/* 5 KEY KPI METRICS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Occupancy */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E2D8] shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-[#85837B]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Occupancy</span>
-            <BedDouble className="w-4 h-4 text-[#C5A880]" />
-          </div>
-          <div className="font-editorial text-2xl font-bold text-[#141413] mt-2">
-            {occupancyRate}%
-          </div>
-          <p className="text-[11px] text-emerald-700 mt-1 font-medium">
-            {occupiedRooms} of {totalRooms} rooms active
-          </p>
-        </div>
-
-        {/* Total Settled Revenue */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E2D8] shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-[#85837B]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Total Revenue</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="font-editorial text-2xl font-bold text-[#141413] mt-2">
-            €{totalRevenue.toLocaleString()}
-          </div>
-          <p className="text-[11px] text-stone-500 mt-1">
-            Settled via Marketplace
-          </p>
-        </div>
-
-        {/* Today's Arrivals */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E2D8] shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-[#85837B]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Today&apos;s Arrivals</span>
-            <Users className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="font-editorial text-2xl font-bold text-[#141413] mt-2">
-            {arrivalsToday.length}
-          </div>
-          <p className="text-[11px] text-blue-700 mt-1">
-            {arrivalsToday.length > 0 ? 'VIP check-ins scheduled' : 'All checked in'}
-          </p>
-        </div>
-
-        {/* Today's Departures */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E2D8] shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-[#85837B]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Departures</span>
-            <Clock className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="font-editorial text-2xl font-bold text-[#141413] mt-2">
-            {departuresToday.length || 1}
-          </div>
-          <p className="text-[11px] text-amber-700 mt-1">
-            Turnover inspections ready
-          </p>
-        </div>
-
-        {/* Available Rooms */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E2D8] shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-[#85837B]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Vacant Clean</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="font-editorial text-2xl font-bold text-[#141413] mt-2">
-            {availableRooms}
-          </div>
-          <p className="text-[11px] text-stone-500 mt-1">
-            Ready for instant allocation
-          </p>
-        </div>
-      </div>
-
-      {/* 2-COLUMN SECTION: Today's Timeline & Operational Trend Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT: Today's Live Operational Timeline */}
-        <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#F0EAE1]">
-            <h2 className="font-editorial text-lg font-bold text-[#141413] flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#C5A880]" />
-              Today&apos;s Guest Operational Timeline
-            </h2>
-            <span className="text-[11px] text-stone-400 font-medium">September 14, 2026</span>
-          </div>
-
-          <div className="space-y-3.5 pt-2">
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-[#FAF8F5] border border-[#F0EAE1]">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold text-xs">
-                IN
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#141413]">Elena Rostova (Suite 103)</span>
-                  <span className="text-stone-400 font-mono">15:30</span>
-                </div>
-                <p className="text-stone-500 mt-0.5">
-                  Arrival meet-and-greet confirmed. Anniversary champagne prepared.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-[#FAF8F5] border border-[#F0EAE1]">
-              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 font-bold text-xs">
-                HK
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#141413]">Suite 104 Turnover Clean</span>
-                  <span className="text-amber-700 font-semibold">In Progress</span>
-                </div>
-                <p className="text-stone-500 mt-0.5">
-                  Assigned to Beatrice Fontaine. Linens refreshed & minibar restocked.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-[#FAF8F5] border border-[#F0EAE1]">
-              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center shrink-0 font-bold text-xs">
-                VIP
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#141413]">Alexander Sterling (Villa 201)</span>
-                  <span className="text-stone-400 font-mono">11:00</span>
-                </div>
-                <p className="text-stone-500 mt-0.5">
-                  Private yacht excursion departure from harbor jetty.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT: Revenue & Occupancy Forecast */}
-        <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-[#E8E2D8] shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#F0EAE1]">
-            <h2 className="font-editorial text-lg font-bold text-[#141413] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
-              7-Day Occupancy & Revenue Projection
-            </h2>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-              +18.4% vs last week
-            </span>
-          </div>
-
-          <div className="pt-2">
-            {/* Visual Bar Graph */}
-            <div className="h-44 flex items-end justify-between gap-2 pt-6">
-              {[
-                { day: 'Mon', pct: 65, rev: '€3.8k' },
-                { day: 'Tue', pct: 78, rev: '€4.6k' },
-                { day: 'Wed', pct: 88, rev: '€5.2k' },
-                { day: 'Thu', pct: 82, rev: '€4.9k' },
-                { day: 'Fri', pct: 100, rev: '€7.4k' },
-                { day: 'Sat', pct: 100, rev: '€7.8k' },
-                { day: 'Sun', pct: 75, rev: '€4.2k' },
-              ].map((bar) => (
-                <div key={bar.day} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                  <span className="text-[10px] font-bold text-[#141413] opacity-0 group-hover:opacity-100 transition-opacity">
-                    {bar.rev}
-                  </span>
-                  <div
-                    className="w-full bg-[#141413] rounded-t-lg group-hover:bg-[#C5A880] transition-colors"
-                    style={{ height: `${bar.pct}%` }}
-                  />
-                  <span className="text-[10px] font-semibold text-stone-500">{bar.day}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-[#F0EAE1] flex items-center justify-between text-xs text-stone-500">
-              <span>Avg. Daily Rate (ADR): <strong className="text-black">€{currentHotel?.startingPrice || 0}</strong></span>
-              <span>RevPAR: <strong className="text-black">€{Math.round((currentHotel?.startingPrice || 0) * (occupancyRate / 100))}</strong></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RECENT RESERVATIONS TABLE */}
-      <div className="bg-white rounded-3xl border border-[#E8E2D8] shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-[#E8E2D8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="font-editorial text-xl font-bold text-[#141413]">
-              Active Property Reservations
-            </h2>
-            <p className="text-xs text-[#85837B] mt-0.5">
-              Strictly filtered to {currentHotel?.name || 'Sanctuary'} (Tenant ID: {currentHotel?.id || currentHotelId})
-            </p>
-          </div>
-          <Link
-            href="/hotel-admin/reservations"
-            className="text-xs font-semibold text-[#141413] hover:text-[#AF8F64] flex items-center gap-1"
-          >
-            <span>View All Reservations</span>
+            <span>View Live Domain</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
+
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="px-5 py-2.5 rounded-2xl bg-[#C5A880] hover:bg-[#b0926b] text-black font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-lg cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Onboard Property</span>
+          </button>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          CUSTOM TENANT DOMAIN SPOTLIGHT BANNER
+          ========================================================================= */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-[#121722] via-[#161E2E] to-[#121722] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-[#C5A880]/15 text-[#C5A880] border border-[#C5A880]/20">
+            <Globe className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#C5A880]">
+              Dedicated Tenant Domain
+            </div>
+            <div className="font-mono text-sm sm:text-base font-bold text-white mt-0.5">
+              hotelstay.com/hotels/<span className="text-[#C5A880]">{currentHotel.slug}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAF8F5] text-[#85837B] uppercase tracking-wider text-[10px] border-b border-[#E8E2D8]">
-              <tr>
-                <th className="py-3.5 px-6 font-semibold">Booking ID</th>
-                <th className="py-3.5 px-6 font-semibold">Guest Name</th>
-                <th className="py-3.5 px-6 font-semibold">Suite Assigned</th>
-                <th className="py-3.5 px-6 font-semibold">Dates</th>
-                <th className="py-3.5 px-6 font-semibold">Status</th>
-                <th className="py-3.5 px-6 font-semibold">Amount</th>
-                <th className="py-3.5 px-6 font-semibold text-right">Quick Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F0EAE1] text-[#575650]">
-              {tenantReservations.map((res) => (
-                <tr key={res.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
-                  <td className="py-4 px-6 font-mono font-bold text-[#141413]">{res.id}</td>
-                  <td className="py-4 px-6 font-semibold text-[#141413]">{res.guestName}</td>
-                  <td className="py-4 px-6">{res.roomNumber || res.roomTypeName}</td>
-                  <td className="py-4 px-6">
-                    {res.checkInDate} → {res.checkOutDate} ({res.nightsCount}n)
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                        res.status === 'checked_in'
-                          ? 'bg-blue-100 text-blue-900'
-                          : res.status === 'confirmed'
-                          ? 'bg-emerald-100 text-emerald-900'
-                          : res.status === 'checked_out'
-                          ? 'bg-stone-100 text-stone-700'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}
-                    >
-                      {res.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 font-bold text-[#141413]">€{res.totalAmount}</td>
-                  <td className="py-4 px-6 text-right">
-                    {res.status === 'confirmed' ? (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/hotels/${currentHotel.slug}`}
+            target="_blank"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors"
+          >
+            Open Guest View →
+          </Link>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          RAREUI METRICS ROW (Strictly Real Data)
+          ========================================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Metric 1: Real-time Occupancy */}
+        <div className="p-6 rounded-3xl bg-[#0E121B] border border-white/10 shadow-lg relative overflow-hidden group hover:border-[#C5A880]/40 transition-all">
+          <div className="flex items-center justify-between text-stone-400 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider">Live Occupancy</span>
+            <div className="p-2 rounded-xl bg-white/5 text-[#C5A880]">
+              <BedDouble className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold font-mono text-white">
+            {occupancyRate}%
+          </div>
+          <div className="text-xs text-stone-400 mt-2 flex items-center gap-1.5">
+            <span className="text-emerald-400 font-semibold">{occupiedRooms} occupied</span>
+            <span>•</span>
+            <span>{availableRooms || totalRooms} available</span>
+          </div>
+        </div>
+
+        {/* Metric 2: Gross Realized Revenue */}
+        <div className="p-6 rounded-3xl bg-[#0E121B] border border-white/10 shadow-lg relative overflow-hidden group hover:border-[#C5A880]/40 transition-all">
+          <div className="flex items-center justify-between text-stone-400 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider">Realized Revenue</span>
+            <div className="p-2 rounded-xl bg-white/5 text-emerald-400">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold font-mono text-white">
+            ${totalRevenue.toLocaleString()}
+          </div>
+          <div className="text-xs text-stone-400 mt-2">
+            From {tenantReservations.length} guest reservations
+          </div>
+        </div>
+
+        {/* Metric 3: Base Starting Rate */}
+        <div className="p-6 rounded-3xl bg-[#0E121B] border border-white/10 shadow-lg relative overflow-hidden group hover:border-[#C5A880]/40 transition-all">
+          <div className="flex items-center justify-between text-stone-400 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider">Starting Rate / Night</span>
+            <div className="p-2 rounded-xl bg-white/5 text-[#C5A880]">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold font-mono text-white">
+            ${currentHotel.startingPrice}
+          </div>
+          <div className="text-xs text-stone-400 mt-2">
+            Currency: {currentHotel.currency} ({currentHotel.currencySymbol})
+          </div>
+        </div>
+
+        {/* Metric 4: Active Suites / Inventory */}
+        <div className="p-6 rounded-3xl bg-[#0E121B] border border-white/10 shadow-lg relative overflow-hidden group hover:border-[#C5A880]/40 transition-all">
+          <div className="flex items-center justify-between text-stone-400 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider">Active Suites</span>
+            <div className="p-2 rounded-xl bg-white/5 text-purple-400">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold font-mono text-white">
+            {currentHotel.roomTypes.length}
+          </div>
+          <div className="text-xs text-stone-400 mt-2">
+            {currentHotel.amenities.length} amenities configured
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SUITES & INVENTORY MATRIX
+          ========================================================================= */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#0E121B] border border-white/10 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="font-editorial text-2xl font-bold text-white">
+              Suites & Inventory Staging
+            </h2>
+            <p className="text-xs text-stone-400 mt-0.5">
+              Real-time room configuration and public availability for {currentHotel.name}.
+            </p>
+          </div>
+
+          <div className="text-xs font-semibold text-stone-400">
+            {currentHotel.roomTypes.length} Active Room Types
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentHotel.roomTypes.map((room) => (
+            <div
+              key={room.id}
+              className="p-5 rounded-2xl bg-[#151B28] border border-white/10 hover:border-[#C5A880]/40 transition-all flex flex-col justify-between space-y-4"
+            >
+              <div>
+                <div className="relative aspect-video rounded-xl overflow-hidden mb-3 border border-white/10">
+                  <Image
+                    src={room.images[0] || currentHotel.heroImage}
+                    alt={room.name}
+                    fill
+                    sizes="350px"
+                    className="object-cover"
+                  />
+                  <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-bold text-white">
+                    ${room.basePricePerNight} / night
+                  </div>
+                </div>
+
+                <h3 className="font-editorial text-lg font-bold text-white">{room.name}</h3>
+                <p className="text-xs text-stone-400 mt-1 line-clamp-2">{room.description}</p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-stone-300">
+                    {room.bedType}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-stone-300">
+                    Up to {room.maxGuests} guests
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Available for Booking
+                </span>
+                <Link
+                  href={`/hotels/${currentHotel.slug}`}
+                  className="text-[#C5A880] hover:underline font-semibold"
+                >
+                  View Details →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          RESERVATIONS & GUEST BOOKINGS TABLE
+          ========================================================================= */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#0E121B] border border-white/10 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="font-editorial text-2xl font-bold text-white">
+              Guest Reservations
+            </h2>
+            <p className="text-xs text-stone-400 mt-0.5">
+              Live guest bookings for {currentHotel.name}.
+            </p>
+          </div>
+        </div>
+
+        {tenantReservations.length === 0 ? (
+          <div className="p-10 rounded-2xl bg-[#151B28]/60 border border-white/5 text-center space-y-3">
+            <Clock className="w-8 h-8 text-[#C5A880] mx-auto opacity-70" />
+            <h3 className="text-base font-bold text-white">No Guest Reservations Yet</h3>
+            <p className="text-xs text-stone-400 max-w-md mx-auto">
+              Your property is live at <span className="font-mono text-[#C5A880]">hotelstay.com/hotels/{currentHotel.slug}</span>. When guests make bookings through Discover or your custom domain, they will appear here in real-time.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-stone-300">
+              <thead className="bg-white/5 text-stone-400 uppercase tracking-wider font-semibold">
+                <tr>
+                  <th className="p-3.5 rounded-l-xl">Guest</th>
+                  <th className="p-3.5">Suite</th>
+                  <th className="p-3.5">Dates</th>
+                  <th className="p-3.5">Amount</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 rounded-r-xl">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {tenantReservations.map((res) => (
+                  <tr key={res.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="p-3.5 font-medium text-white">
+                      <div>{res.guestName}</div>
+                      <div className="text-[10px] text-stone-500">{res.guestEmail}</div>
+                    </td>
+                    <td className="p-3.5">{res.roomTypeName}</td>
+                    <td className="p-3.5 font-mono text-stone-400">
+                      {res.checkInDate} → {res.checkOutDate}
+                    </td>
+                    <td className="p-3.5 font-mono font-bold text-white">
+                      ${res.totalAmount}
+                    </td>
+                    <td className="p-3.5">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-[10px]">
+                        {res.status}
+                      </span>
+                    </td>
+                    <td className="p-3.5">
                       <button
                         onClick={() => updateReservationStatus(res.id, 'checked_in')}
-                        className="px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-colors"
+                        className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold cursor-pointer"
                       >
-                        Check-in Guest
+                        Check In
                       </button>
-                    ) : res.status === 'checked_in' ? (
-                      <button
-                        onClick={() => updateReservationStatus(res.id, 'checked_out')}
-                        className="px-3 py-1 rounded-full bg-stone-800 hover:bg-black text-white font-semibold text-[11px] transition-colors"
-                      >
-                        Check-out
-                      </button>
-                    ) : (
-                      <span className="text-stone-400 text-[11px]">Archived</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </main>
   );

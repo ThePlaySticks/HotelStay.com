@@ -3,7 +3,7 @@ import { Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { MarketplaceProvider } from '@/context/MarketplaceContext';
-import { PersonaSwitcher } from '@/components/common/PersonaSwitcher';
+import { AuthModal } from '@/components/common/AuthModal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 
 const playfair = Playfair_Display({
@@ -34,7 +34,7 @@ export default function RootLayout({
         <AuthProvider>
           <MarketplaceProvider>
             {children}
-            <PersonaSwitcher />
+            <AuthModal />
             <ToastContainer />
           </MarketplaceProvider>
         </AuthProvider>
