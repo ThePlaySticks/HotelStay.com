@@ -3,14 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowRight,
-  Menu,
-  X,
   Compass,
   Building2,
-  ChevronRight,
-  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 
 // ============================================================================
@@ -85,44 +82,43 @@ const OPERATE_IMAGES = [
 type ActiveExperience = 'split' | 'discover' | 'operate';
 
 export default function CinematicLandingPage() {
+  const router = useRouter();
+
   // Intro animation states:
-  // stage 0: 0-4s clean white canvas anticipation
-  // stage 1: 4s - 6s bold logo reveal
-  // stage 2: 6s - 8s "Welcome to HotelStay." subtitle reveal
-  // stage 3: 8s+ full cinematic landing experience unveiled
+  // stage 0: 0-2s clean white canvas anticipation
+  // stage 1: 2s - 4s bold logo alone reveal
+  // stage 2: 4s - 6s "Welcome to HotelStay" subtitle reveal
+  // stage 3: 6s+ portal transition opening into the landing page
   const [introStage, setIntroStage] = useState<number>(0);
   const [introCompleted, setIntroCompleted] = useState<boolean>(false);
 
-  // Active hover/focus experience in split view
-  const [hoveredExperience, setHoveredExperience] = useState<'discover' | 'operate' | null>(null);
+  // Active view state
   const [activeView, setActiveView] = useState<ActiveExperience>('split');
 
   // Slideshow indexes for continuous living photograph crossfades
   const [discoverIdx, setDiscoverIdx] = useState<number>(0);
   const [operateIdx, setOperateIdx] = useState<number>(0);
 
-  // Minimal luxury navigation menu drawer
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
-
   // --------------------------------------------------------------------------
-  // 1. INTRO TIMING SEQUENCE
+  // 1. INTRO TIMING SEQUENCE (2s + 2s + 2s + Portal Transition)
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Stage 1: Reveal bold logo at 3800ms (~4s)
+    // Stage 1: Bold logo alone after 2s of white anticipation
     const t1 = setTimeout(() => {
       setIntroStage(1);
-    }, 3800);
+    }, 2000);
 
-    // Stage 2: Reveal "Welcome to HotelStay." at 5600ms
+    // Stage 2: "Welcome to HotelStay" subtitle after another 2s (at 4s mark)
     const t2 = setTimeout(() => {
       setIntroStage(2);
-    }, 5600);
+    }, 4000);
 
-    // Stage 3: Dissolve into the dual cinematic experience at 7600ms
+    // Stage 3: Portal opens after another 2s (at 6s mark)
     const t3 = setTimeout(() => {
       setIntroStage(3);
-      setTimeout(() => setIntroCompleted(true), 1200);
-    }, 7600);
+      // Mark intro as completed after portal aperture transition finishes (1.4s)
+      setTimeout(() => setIntroCompleted(true), 1400);
+    }, 6000);
 
     return () => {
       clearTimeout(t1);
@@ -161,29 +157,30 @@ export default function CinematicLandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#06080E] text-white font-sans select-none">
       {/* =========================================================================
-          OPENING CINEMATIC INTRO (0 - 8s)
-          0-4s: Pure white canvas anticipation
-          4s+: Bold logo reveal
-          6s+: "Welcome to HotelStay." subtitle reveal
-          8s+: Smooth dissolve into dual experience
+          OPENING CINEMATIC INTRO (2s Anticipation -> 2s Bold Logo -> 2s Welcome -> Portal)
           ========================================================================= */}
       {!introCompleted && (
         <div
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-white transition-opacity duration-1200 ease-in-out ${
-            introStage >= 3 ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-white ${
+            introStage >= 3 ? 'animate-portal-out pointer-events-none' : 'opacity-100'
           }`}
         >
-          {/* Subtle Ambient Golden Radial on White */}
+          {/* Subtle Ambient Radial Glow */}
           <div
             className="absolute inset-0 pointer-events-none opacity-40"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 50% 50%, rgba(197, 168, 128, 0.18) 0%, transparent 60%)',
+                'radial-gradient(circle at 50% 50%, rgba(197, 168, 128, 0.22) 0%, transparent 65%)',
             }}
           />
 
+          {/* Luminous Portal Ring Effect (Expands when transitioning at 6s) */}
+          {introStage >= 3 && (
+            <div className="absolute w-72 h-72 rounded-full border-2 border-[#C5A880] shadow-[0_0_80px_rgba(197,168,128,0.8)] pointer-events-none animate-portal-ring" />
+          )}
+
           <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
-            {/* Step 1: Bold HotelStay Logo */}
+            {/* Step 1: Bold HotelStay Logo alone (2s - 4s) */}
             <div
               className={`flex flex-col items-center transition-all duration-1000 ease-out transform ${
                 introStage >= 1
@@ -191,7 +188,7 @@ export default function CinematicLandingPage() {
                   : 'opacity-0 translate-y-8 scale-95'
               }`}
             >
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-full overflow-hidden shadow-2xl border border-stone-200 ring-4 ring-[#C5A880]/20">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-full overflow-hidden shadow-2xl border border-stone-200 ring-4 ring-[#C5A880]/30">
                 <Image
                   src="/images/hotelstay-logo.jpeg"
                   alt="HotelStay Logo"
@@ -207,15 +204,15 @@ export default function CinematicLandingPage() {
               </h1>
             </div>
 
-            {/* Step 2: "Welcome to HotelStay." subtitle */}
+            {/* Step 2: "Welcome to HotelStay" subtitle (4s - 6s) */}
             <div
-              className={`mt-4 transition-all duration-1000 delay-150 ease-out transform ${
+              className={`mt-5 transition-all duration-1000 ease-out transform ${
                 introStage >= 2
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-4'
+                  ? 'opacity-100 translate-y-0 scale-100'
+                  : 'opacity-0 translate-y-4 scale-95'
               }`}
             >
-              <p className="font-editorial italic text-lg sm:text-2xl text-[#85837B] tracking-wide font-normal">
+              <p className="font-editorial italic text-xl sm:text-3xl text-[#85837B] tracking-wide font-normal">
                 Welcome to HotelStay.
               </p>
             </div>
@@ -232,7 +229,7 @@ export default function CinematicLandingPage() {
       )}
 
       {/* =========================================================================
-          MINIMAL LUXURY TOP NAVIGATION
+          MINIMAL LUXURY TOP NAVIGATION (Menu button removed)
           ========================================================================= */}
       <header className="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-6 sm:py-8 pointer-events-none">
         {/* Brand Wordmark & Emblem */}
@@ -255,11 +252,14 @@ export default function CinematicLandingPage() {
           </span>
         </div>
 
-        {/* Subtle Experience Switcher for Fast Switching */}
-        <div className="pointer-events-auto hidden md:flex items-center gap-1.5 p-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-xs font-semibold uppercase tracking-widest text-stone-300 shadow-2xl">
+        {/* Subtle Experience Switcher for Direct Mode Switching */}
+        <div className="pointer-events-auto flex items-center gap-1.5 p-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-xs font-semibold uppercase tracking-widest text-stone-300 shadow-2xl">
           <button
-            onClick={() => setActiveView('discover')}
-            className={`px-4 py-2 rounded-full transition-all duration-300 cursor-pointer ${
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveView('discover');
+            }}
+            className={`px-4 py-2 rounded-full transition-colors cursor-pointer ${
               activeView === 'discover'
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'hover:text-white hover:bg-white/10'
@@ -268,8 +268,11 @@ export default function CinematicLandingPage() {
             Discover
           </button>
           <button
-            onClick={() => setActiveView('split')}
-            className={`px-3 py-2 rounded-full transition-all duration-300 cursor-pointer ${
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveView('split');
+            }}
+            className={`px-3 py-2 rounded-full transition-colors cursor-pointer ${
               activeView === 'split'
                 ? 'bg-[#C5A880] text-black font-bold shadow-md'
                 : 'hover:text-white hover:bg-white/10'
@@ -279,8 +282,11 @@ export default function CinematicLandingPage() {
             Overview
           </button>
           <button
-            onClick={() => setActiveView('operate')}
-            className={`px-4 py-2 rounded-full transition-all duration-300 cursor-pointer ${
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveView('operate');
+            }}
+            className={`px-4 py-2 rounded-full transition-colors cursor-pointer ${
               activeView === 'operate'
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'hover:text-white hover:bg-white/10'
@@ -289,189 +295,37 @@ export default function CinematicLandingPage() {
             Operate
           </button>
         </div>
-
-        {/* Minimal Menu Trigger Button */}
-        <div className="pointer-events-auto flex items-center gap-4">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/15 text-white text-xs uppercase tracking-widest font-semibold hover:border-white/40 transition-all cursor-pointer shadow-xl"
-            aria-label="Open Navigation Menu"
-          >
-            <span className="hidden sm:inline">Menu</span>
-            <Menu className="w-4 h-4 text-[#C5A880]" />
-          </button>
-        </div>
       </header>
 
       {/* =========================================================================
-          LUXURY MINIMAL DRAWER OVERLAY (Quick Jump Menu)
-          ========================================================================= */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-2xl transition-all duration-500 animate-fade-zoom">
-          <div className="relative w-full max-w-md h-full bg-[#0B0E14] border-l border-white/10 p-8 sm:p-12 flex flex-col justify-between overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-6">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full overflow-hidden relative border border-white/20">
-                  <Image src="/images/hotelstay-logo.jpeg" alt="Logo" fill sizes="28px" className="object-cover" />
-                </div>
-                <span className="font-editorial text-lg font-bold tracking-widest uppercase">
-                  HOTELSTAY
-                </span>
-              </div>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 hover:text-white transition-colors cursor-pointer"
-                aria-label="Close Menu"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Menu Sections */}
-            <div className="py-8 space-y-8">
-              {/* DISCOVER Portal Links */}
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C5A880]">
-                  GUEST & TRAVEL EXPERIENCES
-                </span>
-                <nav className="mt-3 space-y-2.5">
-                  <Link
-                    href="/search"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 text-stone-200 hover:text-white transition-all group"
-                  >
-                    <div>
-                      <div className="font-editorial text-lg font-semibold group-hover:translate-x-1 transition-transform">
-                        Explore Hotels & Sanctuaries
-                      </div>
-                      <div className="text-xs text-stone-400 font-light">
-                        Discover verified luxury suites & retreats
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-[#C5A880] transition-colors" />
-                  </Link>
-
-                  <Link
-                    href="/destinations"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 text-stone-200 hover:text-white transition-all group"
-                  >
-                    <div>
-                      <div className="font-editorial text-lg font-semibold group-hover:translate-x-1 transition-transform">
-                        World Destinations
-                      </div>
-                      <div className="text-xs text-stone-400 font-light">
-                        Curated guides to premier regions
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-[#C5A880] transition-colors" />
-                  </Link>
-
-                  <Link
-                    href="/guest"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 text-stone-200 hover:text-white transition-all group"
-                  >
-                    <div>
-                      <div className="font-editorial text-lg font-semibold group-hover:translate-x-1 transition-transform">
-                        Guest Portal & Bookings
-                      </div>
-                      <div className="text-xs text-stone-400 font-light">
-                        Manage reservations, loyalty & itineraries
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-[#C5A880] transition-colors" />
-                  </Link>
-                </nav>
-              </div>
-
-              {/* OPERATE Portal Links */}
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C5A880]">
-                  HOSPITALITY MANAGEMENT
-                </span>
-                <nav className="mt-3 space-y-2.5">
-                  <Link
-                    href="/hotel-admin"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 text-stone-200 hover:text-white transition-all group"
-                  >
-                    <div>
-                      <div className="font-editorial text-lg font-semibold group-hover:translate-x-1 transition-transform">
-                        Hotel PMS & Operations
-                      </div>
-                      <div className="text-xs text-stone-400 font-light">
-                        Live calendar, reservations, rooms & staff
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-[#C5A880] transition-colors" />
-                  </Link>
-
-                  <Link
-                    href="/partner/onboard"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 text-stone-200 hover:text-white transition-all group"
-                  >
-                    <div>
-                      <div className="font-editorial text-lg font-semibold group-hover:translate-x-1 transition-transform">
-                        List Your Property
-                      </div>
-                      <div className="text-xs text-stone-400 font-light">
-                        Join the HotelStay luxury partner ecosystem
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-500 group-hover:text-[#C5A880] transition-colors" />
-                  </Link>
-                </nav>
-              </div>
-            </div>
-
-            {/* Footer with Discreet Administrative Access */}
-            <div className="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-stone-500">
-              <span>© {new Date().getFullYear()} HotelStay</span>
-              <Link
-                href="/super-admin"
-                onClick={() => setMenuOpen(false)}
-                className="hover:text-stone-300 transition-colors flex items-center gap-1"
-              >
-                <span>Platform Admin</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
           MAIN CINEMATIC ENVIRONMENT CONTAINER
-          Responsive Split-Screen & Full Views for DISCOVER & OPERATE
+          High Performance 60FPS Split Screen: Direct Clickable Halves
+          No Image Expansion on Hover & Zero Reflow Lag
           ========================================================================= */}
-      <main className="relative w-full h-screen flex flex-col lg:flex-row overflow-hidden">
+      <main
+        className={`relative w-full h-screen flex flex-col lg:flex-row overflow-hidden ${
+          introStage >= 3 ? 'animate-portal-reveal' : ''
+        }`}
+      >
         {/* =======================================================================
-            ENVIRONMENT 1: DISCOVER (For Guests and Travelers)
+            ENVIRONMENT 1: DISCOVER (Clicking anywhere navigates to /search)
             ======================================================================= */}
         <section
-          onMouseEnter={() => setHoveredExperience('discover')}
-          onMouseLeave={() => setHoveredExperience(null)}
-          className={`relative h-1/2 lg:h-full transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 ${
+          onClick={() => router.push('/search')}
+          className={`group relative h-1/2 lg:h-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 cursor-pointer transition-all duration-500 ease-out ${
             activeView === 'discover'
               ? 'w-full h-full z-20'
               : activeView === 'operate'
               ? 'w-0 h-0 opacity-0 pointer-events-none'
-              : hoveredExperience === 'discover'
-              ? 'lg:w-[65%] w-full z-10'
-              : hoveredExperience === 'operate'
-              ? 'lg:w-[35%] w-full opacity-80'
-              : 'lg:w-1/2 w-full'
+              : 'lg:w-1/2 w-full hover:bg-white/[0.02]'
           }`}
         >
-          {/* Continuous Crossfading Living Photograph Slideshow */}
+          {/* Living Photograph Slideshow (No expansion on hover) */}
           <div className="absolute inset-0 z-0">
             {DISCOVER_IMAGES.map((img, i) => (
               <div
                 key={img.url}
-                className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
                   i === discoverIdx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
@@ -479,16 +333,16 @@ export default function CinematicLandingPage() {
                   src={img.url}
                   alt={img.title}
                   fill
-                  sizes="(max-width: 1024px) 100vw, 65vw"
-                  className={`object-cover ${i % 2 === 0 ? 'animate-kenburns-1' : 'animate-kenburns-2'}`}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                   priority={i === 0}
                 />
               </div>
             ))}
 
             {/* Luxury Atmospheric Overlays */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-            <div className="absolute inset-0 z-10 bg-black/25 backdrop-blur-[1px]" />
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
+            <div className="absolute inset-0 z-10 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
           </div>
 
           {/* Content Overlay */}
@@ -500,7 +354,7 @@ export default function CinematicLandingPage() {
             </div>
 
             {/* Master Headline */}
-            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none">
+            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
               DISCOVER
             </h2>
 
@@ -512,33 +366,25 @@ export default function CinematicLandingPage() {
               Find your next stay with HotelStay.
             </p>
 
-            {/* Action Button */}
-            <div className="mt-6 sm:mt-8 flex items-center gap-4">
-              <Link
-                href="/search"
-                className="group inline-flex items-center gap-3 px-7 sm:px-9 py-3.5 sm:py-4 rounded-full bg-white hover:bg-[#FAF8F5] text-[#141413] text-xs font-bold uppercase tracking-[0.15em] shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] cursor-pointer"
-              >
-                <span>Enter Discover</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform text-[#141413]" />
-              </Link>
-
-              {activeView !== 'discover' && (
-                <button
-                  onClick={() => setActiveView('discover')}
-                  className="hidden xl:inline-flex text-xs uppercase tracking-widest text-stone-400 hover:text-white transition-colors cursor-pointer underline underline-offset-4"
-                >
-                  Expand View
-                </button>
-              )}
+            {/* Subtle Interactive Access Cue */}
+            <div className="mt-6 sm:mt-8 flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-semibold text-stone-300 group-hover:text-white transition-colors">
+              <span>Explore Marketplace</span>
+              <ArrowRight className="w-4 h-4 text-[#C5A880] group-hover:translate-x-2 transition-transform duration-300" />
             </div>
 
-            {/* Live Slide Indicator */}
-            <div className="mt-6 flex items-center gap-2">
+            {/* Live Slide Indicator Dots */}
+            <div
+              className="mt-6 flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               {DISCOVER_IMAGES.map((_, dotIdx) => (
                 <button
                   key={dotIdx}
-                  onClick={() => setDiscoverIdx(dotIdx)}
-                  className={`h-1 transition-all duration-500 rounded-full cursor-pointer ${
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDiscoverIdx(dotIdx);
+                  }}
+                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
                     dotIdx === discoverIdx
                       ? 'w-8 bg-[#C5A880]'
                       : 'w-2 bg-white/30 hover:bg-white/60'
@@ -561,29 +407,24 @@ export default function CinematicLandingPage() {
         )}
 
         {/* =======================================================================
-            ENVIRONMENT 2: OPERATE (For Hotels, Owners & Hospitality Teams)
+            ENVIRONMENT 2: OPERATE (Clicking anywhere navigates to /hotel-admin)
             ======================================================================= */}
         <section
-          onMouseEnter={() => setHoveredExperience('operate')}
-          onMouseLeave={() => setHoveredExperience(null)}
-          className={`relative h-1/2 lg:h-full transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 ${
+          onClick={() => router.push('/hotel-admin')}
+          className={`group relative h-1/2 lg:h-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 cursor-pointer transition-all duration-500 ease-out ${
             activeView === 'operate'
               ? 'w-full h-full z-20'
               : activeView === 'discover'
               ? 'w-0 h-0 opacity-0 pointer-events-none'
-              : hoveredExperience === 'operate'
-              ? 'lg:w-[65%] w-full z-10'
-              : hoveredExperience === 'discover'
-              ? 'lg:w-[35%] w-full opacity-80'
-              : 'lg:w-1/2 w-full'
+              : 'lg:w-1/2 w-full hover:bg-white/[0.02]'
           }`}
         >
-          {/* Continuous Crossfading Living Photograph Slideshow */}
+          {/* Living Photograph Slideshow (No expansion on hover) */}
           <div className="absolute inset-0 z-0">
             {OPERATE_IMAGES.map((img, i) => (
               <div
                 key={img.url}
-                className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
                   i === operateIdx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
@@ -591,8 +432,8 @@ export default function CinematicLandingPage() {
                   src={img.url}
                   alt={img.title}
                   fill
-                  sizes="(max-width: 1024px) 100vw, 65vw"
-                  className={`object-cover ${i % 2 === 0 ? 'animate-kenburns-2' : 'animate-kenburns-1'}`}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                   priority={i === 0}
                 />
               </div>
@@ -600,7 +441,7 @@ export default function CinematicLandingPage() {
 
             {/* Luxury Atmospheric Overlays */}
             <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
-            <div className="absolute inset-0 z-10 bg-[#06080E]/30 backdrop-blur-[1px]" />
+            <div className="absolute inset-0 z-10 bg-[#06080E]/30 group-hover:bg-[#06080E]/20 transition-colors duration-300" />
           </div>
 
           {/* Content Overlay */}
@@ -612,7 +453,7 @@ export default function CinematicLandingPage() {
             </div>
 
             {/* Master Headline */}
-            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none">
+            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
               OPERATE
             </h2>
 
@@ -624,33 +465,25 @@ export default function CinematicLandingPage() {
               Run your hospitality business with HotelStay.
             </p>
 
-            {/* Action Button */}
-            <div className="mt-6 sm:mt-8 flex items-center gap-4">
-              <Link
-                href="/hotel-admin"
-                className="group inline-flex items-center gap-3 px-7 sm:px-9 py-3.5 sm:py-4 rounded-full bg-[#C5A880] hover:bg-[#D4BC96] text-[#141413] text-xs font-bold uppercase tracking-[0.15em] shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(197,168,128,0.4)] cursor-pointer"
-              >
-                <span>Enter Operate</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform text-[#141413]" />
-              </Link>
-
-              {activeView !== 'operate' && (
-                <button
-                  onClick={() => setActiveView('operate')}
-                  className="hidden xl:inline-flex text-xs uppercase tracking-widest text-stone-400 hover:text-white transition-colors cursor-pointer underline underline-offset-4"
-                >
-                  Expand View
-                </button>
-              )}
+            {/* Subtle Interactive Access Cue */}
+            <div className="mt-6 sm:mt-8 flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-semibold text-stone-300 group-hover:text-white transition-colors">
+              <span>Access PMS & Management</span>
+              <ArrowRight className="w-4 h-4 text-[#C5A880] group-hover:translate-x-2 transition-transform duration-300" />
             </div>
 
-            {/* Live Slide Indicator */}
-            <div className="mt-6 flex items-center gap-2">
+            {/* Live Slide Indicator Dots */}
+            <div
+              className="mt-6 flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               {OPERATE_IMAGES.map((_, dotIdx) => (
                 <button
                   key={dotIdx}
-                  onClick={() => setOperateIdx(dotIdx)}
-                  className={`h-1 transition-all duration-500 rounded-full cursor-pointer ${
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOperateIdx(dotIdx);
+                  }}
+                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
                     dotIdx === operateIdx
                       ? 'w-8 bg-[#C5A880]'
                       : 'w-2 bg-white/30 hover:bg-white/60'
