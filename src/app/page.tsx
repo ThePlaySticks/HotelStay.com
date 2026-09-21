@@ -79,16 +79,23 @@ const OPERATE_IMAGES = [
   },
 ];
 
+// Phrase structure for the physics drop & dangle intro at 6s
+const INTRO_WORDS = [
+  { word: 'WELCOME', letters: ['W', 'E', 'L', 'C', 'O', 'M', 'E'] },
+  { word: 'TO', letters: ['T', 'O'] },
+  { word: 'HOTELSTAY', letters: ['H', 'O', 'T', 'E', 'L', 'S', 'T', 'A', 'Y'] },
+];
+
 type ActiveExperience = 'split' | 'discover' | 'operate';
 
 export default function CinematicLandingPage() {
   const router = useRouter();
 
   // Intro animation states:
-  // stage 0: 0-2s clean white canvas anticipation
-  // stage 1: 2s - 4s bold logo alone reveal
-  // stage 2: 4s - 6s "Welcome to HotelStay" subtitle reveal
-  // stage 3: 6s+ portal transition opening into the landing page
+  // stage 0: 0 - 3s clean white canvas anticipation
+  // stage 1: 3s - 6s bold logo emblem ALONE (no HOTELSTAY text)
+  // stage 2: 6s - 8.8s "WELCOME TO HOTELSTAY" letters dropping & dangling from top
+  // stage 3: 8.8s+ portal transition opening into the landing page
   const [introStage, setIntroStage] = useState<number>(0);
   const [introCompleted, setIntroCompleted] = useState<boolean>(false);
 
@@ -100,25 +107,25 @@ export default function CinematicLandingPage() {
   const [operateIdx, setOperateIdx] = useState<number>(0);
 
   // --------------------------------------------------------------------------
-  // 1. INTRO TIMING SEQUENCE (2s + 2s + 2s + Portal Transition)
+  // 1. INTRO TIMING SEQUENCE (3s White Canvas -> 3s Logo -> Letters Drop -> Portal)
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Stage 1: Bold logo alone after 2s of white anticipation
+    // Stage 1: Bold logo alone after 3s of white anticipation
     const t1 = setTimeout(() => {
       setIntroStage(1);
-    }, 2000);
+    }, 3000);
 
-    // Stage 2: "Welcome to HotelStay" subtitle after another 2s (at 4s mark)
+    // Stage 2: "WELCOME TO HOTELSTAY" letters drop and dangle at 6s
     const t2 = setTimeout(() => {
       setIntroStage(2);
-    }, 4000);
+    }, 6000);
 
-    // Stage 3: Portal opens after another 2s (at 6s mark)
+    // Stage 3: Portal opens once the sentence is formed (at 8.8s)
     const t3 = setTimeout(() => {
       setIntroStage(3);
       // Mark intro as completed after portal aperture transition finishes (1.4s)
       setTimeout(() => setIntroCompleted(true), 1400);
-    }, 6000);
+    }, 8800);
 
     return () => {
       clearTimeout(t1);
@@ -154,10 +161,13 @@ export default function CinematicLandingPage() {
     };
   }, [introCompleted, introStage]);
 
+  // Compute running letter index for staggered drop delays
+  let letterRunningIndex = 0;
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#06080E] text-white font-sans select-none">
       {/* =========================================================================
-          OPENING CINEMATIC INTRO (2s Anticipation -> 2s Bold Logo -> 2s Welcome -> Portal)
+          OPENING CINEMATIC INTRO (3s Anticipation -> 3s Logo Alone -> Letter Drop & Dangle -> Portal)
           ========================================================================= */}
       {!introCompleted && (
         <div
@@ -174,48 +184,56 @@ export default function CinematicLandingPage() {
             }}
           />
 
-          {/* Luminous Portal Ring Effect (Expands when transitioning at 6s) */}
+          {/* Luminous Portal Ring Effect (Expands when transitioning) */}
           {introStage >= 3 && (
             <div className="absolute w-72 h-72 rounded-full border-2 border-[#C5A880] shadow-[0_0_80px_rgba(197,168,128,0.8)] pointer-events-none animate-portal-ring" />
           )}
 
-          <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
-            {/* Step 1: Bold HotelStay Logo alone (2s - 4s) */}
+          <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl">
+            {/* Step 1: Logo emblem ALONE (3s - 6s, NO "HOTELSTAY" text) */}
             <div
               className={`flex flex-col items-center transition-all duration-1000 ease-out transform ${
                 introStage >= 1
                   ? 'opacity-100 translate-y-0 scale-100'
-                  : 'opacity-0 translate-y-8 scale-95'
+                  : 'opacity-0 translate-y-8 scale-90 pointer-events-none'
               }`}
             >
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6 rounded-full overflow-hidden shadow-2xl border border-stone-200 ring-4 ring-[#C5A880]/30">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-2xl border border-stone-200 ring-4 ring-[#C5A880]/35 bg-white">
                 <Image
                   src="/images/hotelstay-logo.jpeg"
                   alt="HotelStay Logo"
                   fill
-                  sizes="96px"
+                  sizes="112px"
                   className="object-cover"
                   priority
                 />
               </div>
-
-              <h1 className="font-editorial text-4xl sm:text-6xl md:text-7xl font-bold tracking-[0.2em] text-[#141413] uppercase">
-                HOTELSTAY
-              </h1>
             </div>
 
-            {/* Step 2: "Welcome to HotelStay" subtitle (4s - 6s) */}
-            <div
-              className={`mt-5 transition-all duration-1000 ease-out transform ${
-                introStage >= 2
-                  ? 'opacity-100 translate-y-0 scale-100'
-                  : 'opacity-0 translate-y-4 scale-95'
-              }`}
-            >
-              <p className="font-editorial italic text-xl sm:text-3xl text-[#85837B] tracking-wide font-normal">
-                Welcome to HotelStay.
-              </p>
-            </div>
+            {/* Step 2: "WELCOME TO HOTELSTAY" Letter-by-Letter Drop & Dangle (Starts at 6s) */}
+            {introStage >= 2 && (
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-2">
+                {INTRO_WORDS.map((item, wordIdx) => (
+                  <div key={wordIdx} className="inline-flex items-center">
+                    {item.letters.map((char, charIdx) => {
+                      const currentIdx = letterRunningIndex++;
+                      const delayMs = currentIdx * 65;
+                      return (
+                        <span
+                          key={charIdx}
+                          className="animate-letter-dangle font-editorial text-2xl sm:text-4xl md:text-5xl font-bold tracking-[0.18em] text-[#141413] select-none"
+                          style={{
+                            animationDelay: `${delayMs}ms`,
+                          }}
+                        >
+                          {char}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Discreet Skip Button */}
