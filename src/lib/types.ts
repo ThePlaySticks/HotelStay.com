@@ -84,6 +84,16 @@ export interface HotelPolicy {
   childPolicy: string;
 }
 
+export type LuxuryTier =
+  | 'Boutique'
+  | '5-Star Luxury'
+  | 'Ocean Resort'
+  | 'Heritage Chateau'
+  | 'Guesthouse'
+  | 'Beachfront Villa'
+  | 'Bed & Breakfast'
+  | 'Resort & Spa';
+
 export interface Hotel {
   id: string;
   slug: string;
@@ -119,7 +129,7 @@ export interface Hotel {
   currency: string;
   currencySymbol: string;
   featured: boolean;
-  luxuryTier: 'Boutique' | '5-Star Luxury' | 'Ocean Resort' | 'Heritage Chateau';
+  luxuryTier: LuxuryTier;
   amenities: string[];
   roomTypes: RoomType[];
   policies: HotelPolicy;

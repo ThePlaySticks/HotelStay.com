@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useMarketplace } from '@/context/MarketplaceContext';
-import { Hotel, RoomType } from '@/lib/types';
+import { Hotel, RoomType, LuxuryTier } from '@/lib/types';
 import {
   Building2,
   Sparkles,
@@ -34,12 +34,15 @@ const CURATED_SAMPLE_PHOTOS = [
   'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80',
 ];
 
-const PROPERTY_TYPES = [
-  { id: 'Boutique Hotel', name: 'Luxury Boutique Hotel', desc: 'Refined hotel with curated suites & concierge' },
+const PROPERTY_TYPES: { id: LuxuryTier; name: string; desc: string }[] = [
+  { id: 'Boutique', name: 'Luxury Boutique Hotel', desc: 'Refined hotel with curated suites & concierge' },
   { id: 'Guesthouse', name: 'Guesthouse & Suites', desc: 'Charming private rooms and personal hosting' },
   { id: 'Beachfront Villa', name: 'Private Beachfront Villa', desc: 'Secluded luxury coastal estate' },
   { id: 'Bed & Breakfast', name: 'Historic Bed & Breakfast', desc: 'Intimate estate with gourmet breakfast' },
   { id: 'Resort & Spa', name: 'Resort & Thermal Spa', desc: 'Full-service wellness sanctuary' },
+  { id: '5-Star Luxury', name: '5-Star Grand Luxury', desc: 'Opulent palatial suites & 24/7 butler service' },
+  { id: 'Ocean Resort', name: 'Ocean Resort & Marina', desc: 'Private waterfront beaches & yacht slips' },
+  { id: 'Heritage Chateau', name: 'Heritage Baronial Chateau', desc: 'Historic stone estate with private acreage' },
 ];
 
 export function HotelOnboardingWizard({ onComplete }: { onComplete?: () => void }) {
@@ -59,7 +62,7 @@ export function HotelOnboardingWizard({ onComplete }: { onComplete?: () => void 
   // Step 2: Hotel Identity
   const [hotelName, setHotelName] = useState('');
   const [slug, setSlug] = useState('');
-  const [propertyType, setPropertyType] = useState('Boutique Hotel');
+  const [propertyType, setPropertyType] = useState<LuxuryTier>('Boutique');
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
 

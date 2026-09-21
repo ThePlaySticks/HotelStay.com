@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole } from '@/lib/types';
 
-export interface UserAccount {
+export interface Persona {
   id: string;
   name: string;
   email: string;
@@ -16,6 +16,41 @@ export interface UserAccount {
   createdAt?: string;
 }
 
+export const PERSONAS: Persona[] = [
+  {
+    id: 'persona-guest',
+    name: 'Julian Vance',
+    email: 'julian.vance@vanceholdings.co.uk',
+    role: 'guest',
+    phone: '+44 7911 123456',
+  },
+  {
+    id: 'persona-azure-admin',
+    name: 'Camille Laurent',
+    email: 'camille.laurent@azureriviera.com',
+    role: 'hotel_manager',
+    hotelId: 'hotel-azure',
+    hotelName: 'The Azure Riviera Resort & Spa',
+    phone: '+33 4 93 01 23 45',
+  },
+  {
+    id: 'persona-serenita-admin',
+    name: 'Dimitris Kostas',
+    email: 'dimitris@serenitahaven.gr',
+    role: 'hotel_manager',
+    hotelId: 'hotel-serenita',
+    hotelName: 'Serenita Coastal Haven & Spa',
+    phone: '+30 2286 071234',
+  },
+  {
+    id: 'persona-super-admin',
+    name: 'Platform Super Admin',
+    email: 'admin@hotelstay.com',
+    role: 'super_admin',
+    phone: '+1 800 555 0100',
+  },
+];
+
 export interface AuthModalState {
   isOpen: boolean;
   mode: 'signin' | 'signup';
@@ -27,13 +62,14 @@ export interface AuthModalState {
 }
 
 interface AuthContextType {
-  currentUser: UserAccount | null;
-  currentPersona: UserAccount; // Backwards-compatible alias for existing views
+  currentUser: Persona | null;
+  currentPersona: Persona;
+  setPersona: (personaIdOrRole: string) => void;
   isAuthenticated: boolean;
   isGuest: boolean;
   isHotelAdmin: boolean;
   isSuperAdmin: boolean;
-  signIn: (email: string, password?: string, asRole?: UserRole) => Promise<UserAccount>;
+  signIn: (email: string, password?: string, asRole?: UserRole) => Promise<Persona>;
   signUp: (params: {
     name: string;
     email: string;
@@ -41,26 +77,21 @@ interface AuthContextType {
     role: UserRole;
     hotelName?: string;
     hotelSlug?: string;
-  }) => Promise<UserAccount>;
+  }) => Promise<Persona>;
   signOut: () => void;
-  updateCurrentUser: (updates: Partial<UserAccount>) => void;
-  // Auth Modal Controls
+  updateCurrentUser: (updates: Partial<Persona>) => void;
   authModal: AuthModalState;
   openAuthModal: (params?: Partial<AuthModalState>) => void;
   closeAuthModal: () => void;
 }
 
-const DEFAULT_GUEST_FALLBACK: UserAccount = {
-  id: 'guest-unauth',
-  name: 'Guest Traveler',
-  email: 'guest@hotelstay.com',
-  role: 'guest',
-};
+const DEFAULT_GUEST: Persona = PERSONAS[0];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [currentUser, setCurrentUser] = useState<Persona | null>(null);
+  const [activePersona, setActivePersona] = useState<Persona>(DEFAULT_GUEST);
   const [authModal, setAuthModal] = useState<AuthModalState>({
     isOpen: false,
     mode: 'signup',
@@ -72,18 +103,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedSession = localStorage.getItem('hotelstay_active_user');
       if (savedSession) {
-        setCurrentUser(JSON.parse(savedSession));
+        const parsed = JSON.parse(savedSession);
+        setCurrentUser(parsed);
+        setActivePersona(parsed);
       }
     } catch {
       // ignore storage error
     }
   }, []);
 
-  const signIn = async (email: string, _password?: string, asRole?: UserRole): Promise<UserAccount> => {
-    const role = asRole || (email.includes('manager') || email.includes('admin') ? 'hotel_manager' : 'guest');
-    const name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const setPersona = (personaIdOrRole: string) => {
+    const found =
+      PERSONAS.find((p) => p.id === personaIdOrRole || p.role === personaIdOrRole) ||
+      {
+        id: `persona-${Date.now()}`,
+        name: 'Hotel Manager',
+        email: 'manager@hotelstay.com',
+        role: (personaIdOrRole as UserRole) || 'hotel_manager',
+        hotelId: personaIdOrRole,
+      };
 
-    const account: UserAccount = {
+    setActivePersona(found);
+    setCurrentUser(found);
+    try {
+      localStorage.setItem('hotelstay_active_user', JSON.stringify(found));
+    } catch {
+      // ignore
+    }
+  };
+
+  const signIn = async (email: string, _password?: string, asRole?: UserRole): Promise<Persona> => {
+    const role = asRole || (email.includes('manager') || email.includes('admin') ? 'hotel_manager' : 'guest');
+    const name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+
+    const account: Persona = {
       id: `usr-${Date.now()}`,
       name: name || 'User',
       email,
@@ -92,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setCurrentUser(account);
+    setActivePersona(account);
     try {
       localStorage.setItem('hotelstay_active_user', JSON.stringify(account));
     } catch {
@@ -107,8 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: UserRole;
     hotelName?: string;
     hotelSlug?: string;
-  }): Promise<UserAccount> => {
-    const account: UserAccount = {
+  }): Promise<Persona> => {
+    const account: Persona = {
       id: `usr-${Date.now()}`,
       name: params.name,
       email: params.email,
@@ -119,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setCurrentUser(account);
+    setActivePersona(account);
     try {
       localStorage.setItem('hotelstay_active_user', JSON.stringify(account));
     } catch {
@@ -129,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = () => {
     setCurrentUser(null);
+    setActivePersona(DEFAULT_GUEST);
     try {
       localStorage.removeItem('hotelstay_active_user');
     } catch {
@@ -136,10 +192,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateCurrentUser = (updates: Partial<UserAccount>) => {
+  const updateCurrentUser = (updates: Partial<Persona>) => {
     setCurrentUser((prev) => {
-      if (!prev) return null;
-      const updated = { ...prev, ...updates };
+      const base = prev || DEFAULT_GUEST;
+      const updated = { ...base, ...updates };
+      setActivePersona(updated);
       try {
         localStorage.setItem('hotelstay_active_user', JSON.stringify(updated));
       } catch {
@@ -165,18 +222,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const isAuthenticated = currentUser !== null && currentUser.id !== 'guest-unauth';
-  const role = currentUser?.role || 'guest';
+  const effectivePersona = currentUser || activePersona;
+  const isAuthenticated = currentUser !== null;
+  const currentRole = effectivePersona.role;
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
-        currentPersona: currentUser || DEFAULT_GUEST_FALLBACK,
+        currentPersona: effectivePersona,
+        setPersona,
         isAuthenticated,
-        isGuest: role === 'guest',
-        isHotelAdmin: role === 'hotel_manager' || role === 'hotel_owner',
-        isSuperAdmin: role === 'super_admin',
+        isGuest: currentRole === 'guest',
+        isHotelAdmin: currentRole === 'hotel_manager' || currentRole === 'hotel_owner',
+        isSuperAdmin: currentRole === 'super_admin',
         signIn,
         signUp,
         signOut,

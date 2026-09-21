@@ -32,7 +32,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hotels, createReservation } = useMarketplace();
-  const { currentUser, isAuthenticated, openAuthModal } = useAuth();
+  const { currentUser, currentPersona, isAuthenticated, openAuthModal } = useAuth();
 
   const hotel = hotels.find((h) => h.slug === resolvedParams.slug) || null;
   const initialRoomId = searchParams.get('roomId') || hotel?.roomTypes?.[0]?.id;

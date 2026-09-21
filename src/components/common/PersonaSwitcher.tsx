@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth, PERSONAS } from '@/context/AuthContext';
+import { useAuth, PERSONAS, Persona } from '@/context/AuthContext';
 import { UserCheck, Shield, Building2, User, ChevronDown, Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,7 +30,7 @@ export function PersonaSwitcher() {
           </p>
 
           <div className="space-y-1.5">
-            {PERSONAS.map((p) => {
+            {PERSONAS.map((p: Persona) => {
               const active = currentPersona.id === p.id;
               return (
                 <button

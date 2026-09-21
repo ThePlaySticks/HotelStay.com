@@ -22,7 +22,7 @@ export function AuthModal() {
   const { showToast } = useMarketplace();
 
   const [mode, setMode] = useState<'signin' | 'signup'>(authModal.mode || 'signup');
-  const [role, setRole] = useState<'guest' | 'hotel_manager'>(authModal.role || 'guest');
+  const [role, setRole] = useState<'guest' | 'hotel_manager' | 'super_admin'>(authModal.role || 'guest');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
