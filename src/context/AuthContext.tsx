@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole } from '@/lib/types';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface Persona {
   id: string;
@@ -74,15 +75,16 @@ interface AuthContextType {
     name: string;
     email: string;
     password?: string;
-    role: UserRole;
+    role?: UserRole;
     hotelName?: string;
     hotelSlug?: string;
   }) => Promise<Persona>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   updateCurrentUser: (updates: Partial<Persona>) => void;
   authModal: AuthModalState;
   openAuthModal: (params?: Partial<AuthModalState>) => void;
   closeAuthModal: () => void;
+  isSupabaseActive: boolean;
 }
 
 const DEFAULT_GUEST: Persona = PERSONAS[0];
@@ -98,18 +100,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: 'guest',
   });
 
-  // Load active session from localStorage
+  // Supabase Auth state listener
   useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem('hotelstay_active_user');
-      if (savedSession) {
-        const parsed = JSON.parse(savedSession);
-        setCurrentUser(parsed);
-        setActivePersona(parsed);
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      // Fallback to local storage if Supabase is not configured yet
+      try {
+        const savedSession = localStorage.getItem('hotelstay_active_user');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          setCurrentUser(parsed);
+          setActivePersona(parsed);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore storage error
+      return;
     }
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user = session.user;
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member';
+        const role = (user.user_metadata?.role as UserRole) || 'guest';
+        const persona: Persona = {
+          id: user.id,
+          name,
+          email: user.email || '',
+          role,
+          phone: user.phone || user.user_metadata?.phone,
+          avatar: user.user_metadata?.avatar_url,
+          hotelName: user.user_metadata?.hotel_name,
+          hotelSlug: user.user_metadata?.hotel_slug,
+          createdAt: user.created_at,
+        };
+        setCurrentUser(persona);
+        setActivePersona(persona);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const user = session.user;
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member';
+        const role = (user.user_metadata?.role as UserRole) || 'guest';
+        const persona: Persona = {
+          id: user.id,
+          name,
+          email: user.email || '',
+          role,
+          phone: user.phone || user.user_metadata?.phone,
+          avatar: user.user_metadata?.avatar_url,
+          hotelName: user.user_metadata?.hotel_name,
+          hotelSlug: user.user_metadata?.hotel_slug,
+          createdAt: user.created_at,
+        };
+        setCurrentUser(persona);
+        setActivePersona(persona);
+        try {
+          localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
+        } catch {
+          // ignore
+        }
+      } else {
+        setCurrentUser(null);
+        setActivePersona(DEFAULT_GUEST);
+        try {
+          localStorage.removeItem('hotelstay_active_user');
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const setPersona = (personaIdOrRole: string) => {
@@ -132,7 +201,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, _password?: string, asRole?: UserRole): Promise<Persona> => {
+  const signIn = async (email: string, password?: string, asRole?: UserRole): Promise<Persona> => {
+    const supabase = getSupabaseClient();
+    if (supabase && password) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+      if (data.user) {
+        const user = data.user;
+        const persona: Persona = {
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email || email,
+          role: (user.user_metadata?.role as UserRole) || asRole || 'guest',
+          createdAt: user.created_at,
+        };
+        setCurrentUser(persona);
+        setActivePersona(persona);
+        return persona;
+      }
+    }
+
+    // Local simulated fallback when Supabase keys are not set
     const role = asRole || (email.includes('manager') || email.includes('admin') ? 'hotel_manager' : 'guest');
     const name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
@@ -158,15 +250,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name: string;
     email: string;
     password?: string;
-    role: UserRole;
+    role?: UserRole;
     hotelName?: string;
     hotelSlug?: string;
   }): Promise<Persona> => {
+    const supabase = getSupabaseClient();
+    const cleanRole: UserRole = params.role || 'guest';
+
+    if (supabase && params.password) {
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
+
+      const { data, error } = await supabase.auth.signUp({
+        email: params.email.trim().toLowerCase(),
+        password: params.password,
+        options: {
+          data: {
+            full_name: params.name.trim(),
+            role: cleanRole,
+            hotel_name: params.hotelName,
+            hotel_slug: params.hotelSlug,
+          },
+          emailRedirectTo: redirectUrl,
+        },
+      });
+      if (error) throw error;
+      if (data.user) {
+        const persona: Persona = {
+          id: data.user.id,
+          name: params.name,
+          email: params.email,
+          role: cleanRole,
+          hotelName: params.hotelName,
+          hotelSlug: params.hotelSlug,
+          createdAt: data.user.created_at,
+        };
+        return persona;
+      }
+    }
+
+    // Local fallback
     const account: Persona = {
       id: `usr-${Date.now()}`,
       name: params.name,
       email: params.email,
-      role: params.role,
+      role: cleanRole,
       hotelName: params.hotelName,
       hotelSlug: params.hotelSlug,
       createdAt: new Date().toISOString(),
@@ -182,7 +311,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return account;
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
     setCurrentUser(null);
     setActivePersona(DEFAULT_GUEST);
     try {
@@ -243,6 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authModal,
         openAuthModal,
         closeAuthModal,
+        isSupabaseActive: isSupabaseConfigured,
       }}
     >
       {children}

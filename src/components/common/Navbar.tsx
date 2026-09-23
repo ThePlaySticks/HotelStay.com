@@ -161,14 +161,13 @@ export function Navbar() {
                 </div>
               </Link>
             ) : (
-              <button
-                type="button"
-                onClick={() => openAuthModal({ mode: 'signin', role: 'guest' })}
+              <Link
+                href="/login"
                 className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8E2D8] bg-white hover:bg-stone-50 text-xs font-semibold text-[#141413] transition-colors shadow-2xs cursor-pointer"
               >
                 <User className="w-3.5 h-3.5 text-[#C5A880]" />
                 <span>Sign In / Join</span>
-              </button>
+              </Link>
             )}
           </div>
 

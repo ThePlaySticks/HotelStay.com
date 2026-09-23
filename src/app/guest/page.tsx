@@ -29,7 +29,7 @@ import {
 function GuestDashboardContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'upcoming';
-  const { currentPersona } = useAuth();
+  const { currentPersona, signOut, isAuthenticated } = useAuth();
   const { reservations, hotels, wishlist, updateReservationStatus } = useMarketplace();
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -76,7 +76,7 @@ function GuestDashboardContent() {
                 </span>
               </div>
               <p className="text-xs text-[#85837B] mt-0.5">
-                {currentPersona.email} · Member since 2024
+                {currentPersona.email}
               </p>
             </div>
           </div>
@@ -91,6 +91,17 @@ function GuestDashboardContent() {
               <span className="block text-[#85837B] uppercase tracking-wider text-[10px]">Saved Wishlist</span>
               <span className="font-bold text-base text-[#141413]">{wishlist.length}</span>
             </div>
+            <div className="h-8 w-[1px] bg-[#E8E2D8]" />
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                window.location.href = '/';
+              }}
+              className="px-3.5 py-1.5 rounded-full border border-stone-300 hover:border-stone-400 text-stone-700 text-xs font-semibold hover:bg-stone-50 cursor-pointer transition-colors"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
 
