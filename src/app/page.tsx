@@ -83,7 +83,7 @@ const OPERATE_IMAGES = [
 const INTRO_WORDS = [
   { word: 'WELCOME', letters: ['W', 'E', 'L', 'C', 'O', 'M', 'E'] },
   { word: 'TO', letters: ['T', 'O'] },
-  { word: 'HOTELSTAY', letters: ['H', 'O', 'T', 'E', 'L', 'S', 'T', 'A', 'Y'] },
+  { word: 'HOTELSTAY.COM', letters: ['H', 'O', 'T', 'E', 'L', 'S', 'T', 'A', 'Y', '.', 'C', 'O', 'M'] },
 ];
 
 type ActiveExperience = 'split' | 'discover' | 'operate';
