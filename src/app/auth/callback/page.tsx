@@ -55,8 +55,19 @@ function AuthCallbackContent() {
         }
 
         setStatus('success');
+
+        // Get the verified user's email to pass to the verified page
+        const { data: { user } } = await client.auth.getUser();
+        const verifiedEmail = user?.email || '';
+
+        // Sign out so the user can explicitly log in from the verified page
+        // (the callback exchanged the code but we want the user to go through login)
+        await client.auth.signOut();
+
         setTimeout(() => {
-          router.push(next);
+          router.push(
+            `/auth/verified${verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : ''}`
+          );
         }, 1200);
       } catch (err: any) {
         setStatus('error');
