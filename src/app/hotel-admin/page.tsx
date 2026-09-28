@@ -90,6 +90,44 @@ export default function HotelAdminDashboard() {
 
   return (
     <main className="min-h-screen bg-[#080A0F] text-white p-6 sm:p-10 space-y-8">
+      {/* HOTEL ONBOARDING STATUS NOTIFICATION BANNER */}
+      {currentHotel.status === 'pending_review' && (
+        <div className="p-5 rounded-3xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Clock className="w-6 h-6 text-amber-400 shrink-0" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-200">Pending Review</h3>
+              <p className="text-xs text-amber-300/80">
+                Your hotel has been submitted and is currently being reviewed by HotelStay.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            Status: pending_review
+          </span>
+        </div>
+      )}
+
+      {currentHotel.status === 'changes_requested' && (
+        <div className="p-5 rounded-3xl bg-rose-950/40 border border-rose-500/30 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-rose-400 shrink-0" />
+            <div>
+              <h3 className="text-sm font-bold text-rose-200">Changes Requested by Admin</h3>
+              <p className="text-xs text-rose-300/90">
+                {currentHotel.adminFeedbackNotes || 'Please update clear photos and property policies before resubmitting.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/partner/onboard"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shrink-0"
+          >
+            Update & Resubmit
+          </Link>
+        </div>
+      )}
+
       {/* =========================================================================
           RAREUI LUXURY HEADER & TENANT DOMAIN BAR
           ========================================================================= */}

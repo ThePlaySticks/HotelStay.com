@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Sparkles,
   Compass,
+  Settings,
 } from 'lucide-react';
 
 export function SuperAdminSidebar() {
@@ -28,6 +29,7 @@ export function SuperAdminSidebar() {
     { href: '/super-admin/applications', label: 'Onboarding Applications', icon: FileCheck2 },
     { href: '/super-admin/destinations', label: 'Destinations & Catalog', icon: Compass },
     { href: '/super-admin/payouts', label: 'Commissions & Payouts', icon: Banknote },
+    { href: '/super-admin/settings', label: 'Account Settings', icon: Settings },
   ];
 
   return (

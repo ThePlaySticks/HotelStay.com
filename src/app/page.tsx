@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import {
   Compass,
   Building2,
@@ -90,6 +91,7 @@ type ActiveExperience = 'split' | 'discover' | 'operate';
 
 export default function CinematicLandingPage() {
   const router = useRouter();
+  const { isAuthenticated, isHotelAdmin } = useAuth();
 
   // Intro animation states:
   // stage 0: 0 - 3s clean white canvas anticipation
@@ -428,7 +430,13 @@ export default function CinematicLandingPage() {
             ENVIRONMENT 2: OPERATE (Clicking anywhere navigates to /hotel-admin)
             ======================================================================= */}
         <section
-          onClick={() => router.push('/hotel-admin')}
+          onClick={() => {
+            if (isAuthenticated && isHotelAdmin) {
+              router.push('/hotel-admin');
+            } else {
+              router.push('/partner/signup');
+            }
+          }}
           className={`group relative h-1/2 lg:h-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 cursor-pointer transition-all duration-500 ease-out ${
             activeView === 'operate'
               ? 'w-full h-full z-20'

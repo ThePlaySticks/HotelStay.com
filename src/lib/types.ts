@@ -4,11 +4,14 @@ export type HotelApprovalStatus =
   | 'draft'
   | 'submitted'
   | 'under_review'
+  | 'pending_review'
   | 'approved'
   | 'needs_changes'
+  | 'changes_requested'
   | 'rejected'
   | 'suspended'
   | 'active'
+  | 'live'
   | 'pending';
 
 export interface Amenity {
@@ -27,12 +30,12 @@ export interface RoomType {
   sizeSqFt: number;
   bedType: string;
   maxGuests: number;
-  view: string;
+  view?: string;
   basePricePerNight: number;
   images: string[];
   amenities: string[];
-  cancellationPolicy: string;
-  mealPlan: string;
+  cancellationPolicy?: string;
+  mealPlan?: string;
   availableCount: number;
 }
 
