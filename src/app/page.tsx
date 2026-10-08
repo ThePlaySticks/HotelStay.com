@@ -9,10 +9,15 @@ import {
   Compass,
   Building2,
   ArrowRight,
+  DollarSign,
+  CalendarCheck,
+  FileCheck,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 // ============================================================================
-// Curated Luxury Photography Collections for DISCOVER & OPERATE
+// Curated Luxury Photography Collections for DISCOVER
 // ============================================================================
 const DISCOVER_IMAGES = [
   {
@@ -47,39 +52,6 @@ const DISCOVER_IMAGES = [
   },
 ];
 
-const OPERATE_IMAGES = [
-  {
-    url: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=2000&q=85',
-    title: 'Grand Reception & Lobby',
-    subtitle: 'Seamless guest arrivals & synchronized check-in',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=2000&q=85',
-    title: 'Hospitality Leadership',
-    subtitle: 'Staff coordination & high-touch concierge services',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=2000&q=85',
-    title: 'Operational Atrium',
-    subtitle: 'Live occupancy matrices & yield management',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=2000&q=85',
-    title: 'Impeccable Room Staging',
-    subtitle: 'Real-time housekeeping dispatch & audit flows',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2000&q=85',
-    title: 'Enterprise Management Hub',
-    subtitle: 'Multi-property financial governance & analytics',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=85',
-    title: 'Iconic Heritage Properties',
-    subtitle: 'Connecting boutique portfolios with global travelers',
-  },
-];
-
 // Phrase structure for the physics drop & dangle intro at 6s
 const INTRO_WORDS = [
   { word: 'WELCOME', letters: ['W', 'E', 'L', 'C', 'O', 'M', 'E'] },
@@ -87,83 +59,86 @@ const INTRO_WORDS = [
   { word: 'HOTELSTAY.COM', letters: ['H', 'O', 'T', 'E', 'L', 'S', 'T', 'A', 'Y', '.', 'C', 'O', 'M'] },
 ];
 
-type ActiveExperience = 'split' | 'discover' | 'operate';
-
 export default function CinematicLandingPage() {
   const router = useRouter();
   const { isAuthenticated, isHotelAdmin } = useAuth();
 
-  // Intro animation states:
-  // stage 0: 0 - 3s clean white canvas anticipation
-  // stage 1: 3s - 6s bold logo emblem ALONE (no HOTELSTAY text)
-  // stage 2: 6s - 8.8s "WELCOME TO HOTELSTAY" letters dropping & dangling from top
-  // stage 3: 8.8s+ portal transition opening into the landing page
-  const [introStage, setIntroStage] = useState<number>(0);
-  const [introCompleted, setIntroCompleted] = useState<boolean>(false);
+  // Intro animation states (defaults to completed for return visits & SSR)
+  const [introStage, setIntroStage] = useState<number>(3);
+  const [introCompleted, setIntroCompleted] = useState<boolean>(true);
 
-  // Active view state
-  const [activeView, setActiveView] = useState<ActiveExperience>('split');
-
-  // Slideshow indexes for continuous living photograph crossfades
+  // Slideshow index for DISCOVER continuous living photograph crossfades
   const [discoverIdx, setDiscoverIdx] = useState<number>(0);
-  const [operateIdx, setOperateIdx] = useState<number>(0);
 
   // --------------------------------------------------------------------------
-  // 1. INTRO TIMING SEQUENCE (3s White Canvas -> 3s Logo -> Letters Drop -> Portal)
+  // 1. INTRO TIMING SEQUENCE (Runs ONLY on first entry in session)
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Stage 1: Bold logo alone after 3s of white anticipation
-    const t1 = setTimeout(() => {
-      setIntroStage(1);
-    }, 3000);
+    if (typeof window === 'undefined') return;
 
-    // Stage 2: "WELCOME TO HOTELSTAY" letters drop and dangle at 6s
-    const t2 = setTimeout(() => {
-      setIntroStage(2);
-    }, 6000);
+    // Check if intro has already been shown in this browser session
+    const hasShownIntro = sessionStorage.getItem('hotelstay_intro_shown');
 
-    // Stage 3: Portal opens once the sentence is formed (at 8.8s)
-    const t3 = setTimeout(() => {
-      setIntroStage(3);
-      // Mark intro as completed after portal aperture transition finishes (1.4s)
-      setTimeout(() => setIntroCompleted(true), 1400);
-    }, 8800);
+    if (!hasShownIntro) {
+      // First entry: initialize and play intro
+      setIntroStage(0);
+      setIntroCompleted(false);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+      const t1 = setTimeout(() => {
+        setIntroStage(1);
+      }, 3000);
+
+      const t2 = setTimeout(() => {
+        setIntroStage(2);
+      }, 6000);
+
+      const t3 = setTimeout(() => {
+        setIntroStage(3);
+        setTimeout(() => {
+          setIntroCompleted(true);
+          try {
+            sessionStorage.setItem('hotelstay_intro_shown', 'true');
+          } catch (e) {
+            console.error(e);
+          }
+        }, 1400);
+      }, 8800);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
   }, []);
 
   const skipIntro = () => {
     setIntroStage(3);
     setIntroCompleted(true);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('hotelstay_intro_shown', 'true');
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   // --------------------------------------------------------------------------
-  // 2. CONTINUOUS LIVING-PHOTOGRAPH CROSSFADING
+  // 2. DISCOVER SLIDESHOW TIMER
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (!introCompleted && introStage < 3) return;
 
-    // Discover slideshow timer (every 6.5s)
     const discoverInterval = setInterval(() => {
       setDiscoverIdx((prev) => (prev + 1) % DISCOVER_IMAGES.length);
     }, 6500);
 
-    // Operate slideshow timer (every 7s, slightly offset for natural feel)
-    const operateInterval = setInterval(() => {
-      setOperateIdx((prev) => (prev + 1) % OPERATE_IMAGES.length);
-    }, 7000);
-
     return () => {
       clearInterval(discoverInterval);
-      clearInterval(operateInterval);
     };
   }, [introCompleted, introStage]);
 
-  // Compute running letter index for staggered drop delays
   let letterRunningIndex = 0;
 
   return (
@@ -186,13 +161,13 @@ export default function CinematicLandingPage() {
             }}
           />
 
-          {/* Luminous Portal Ring Effect (Expands when transitioning) */}
+          {/* Luminous Portal Ring Effect */}
           {introStage >= 3 && (
             <div className="absolute w-72 h-72 rounded-full border-2 border-[#C5A880] shadow-[0_0_80px_rgba(197,168,128,0.8)] pointer-events-none animate-portal-ring" />
           )}
 
           <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl">
-            {/* Step 1: Logo emblem ALONE (3s - 6s, NO "HOTELSTAY" text) */}
+            {/* Step 1: Logo emblem ALONE */}
             <div
               className={`flex flex-col items-center transition-all duration-1000 ease-out transform ${
                 introStage >= 1
@@ -212,7 +187,7 @@ export default function CinematicLandingPage() {
               </div>
             </div>
 
-            {/* Step 2: "WELCOME TO HOTELSTAY" Letter-by-Letter Drop & Dangle (Starts at 6s) */}
+            {/* Step 2: "WELCOME TO HOTELSTAY" Letter-by-Letter Drop & Dangle */}
             {introStage >= 2 && (
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-2">
                 {INTRO_WORDS.map((item, wordIdx) => (
@@ -238,7 +213,7 @@ export default function CinematicLandingPage() {
             )}
           </div>
 
-          {/* Discreet Skip Button */}
+          {/* Skip Button */}
           <button
             onClick={skipIntro}
             className="absolute bottom-8 right-8 text-[11px] uppercase tracking-[0.2em] font-semibold text-stone-400 hover:text-stone-700 transition-colors py-2 px-4 rounded-full border border-stone-200 hover:border-stone-400 cursor-pointer"
@@ -249,13 +224,14 @@ export default function CinematicLandingPage() {
       )}
 
       {/* =========================================================================
-          MINIMAL LUXURY TOP NAVIGATION (Menu button removed)
+          MINIMAL LUXURY TOP NAVIGATION
+          ("Discover, Overview and Operate" button removed as requested)
           ========================================================================= */}
       <header className="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-6 sm:py-8 pointer-events-none">
         {/* Brand Wordmark & Emblem */}
         <div
           className="pointer-events-auto flex items-center gap-3.5 group cursor-pointer"
-          onClick={() => setActiveView('split')}
+          onClick={() => router.push('/')}
         >
           <div className="relative w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-lg group-hover:scale-105 transition-transform">
             <Image
@@ -271,56 +247,11 @@ export default function CinematicLandingPage() {
             HOTELSTAY
           </span>
         </div>
-
-        {/* Subtle Experience Switcher for Direct Mode Switching */}
-        <div className="pointer-events-auto flex items-center gap-1.5 p-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-xs font-semibold uppercase tracking-widest text-stone-300 shadow-2xl">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveView('discover');
-            }}
-            className={`px-4 py-2 rounded-full transition-colors cursor-pointer ${
-              activeView === 'discover'
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'hover:text-white hover:bg-white/10'
-            }`}
-          >
-            Discover
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveView('split');
-            }}
-            className={`px-3 py-2 rounded-full transition-colors cursor-pointer ${
-              activeView === 'split'
-                ? 'bg-[#C5A880] text-black font-bold shadow-md'
-                : 'hover:text-white hover:bg-white/10'
-            }`}
-            title="Split Overview"
-          >
-            Overview
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveView('operate');
-            }}
-            className={`px-4 py-2 rounded-full transition-colors cursor-pointer ${
-              activeView === 'operate'
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'hover:text-white hover:bg-white/10'
-            }`}
-          >
-            Operate
-          </button>
-        </div>
       </header>
 
       {/* =========================================================================
           MAIN CINEMATIC ENVIRONMENT CONTAINER
-          High Performance 60FPS Split Screen: Direct Clickable Halves
-          No Image Expansion on Hover & Zero Reflow Lag
+          Split Screen Layout: DISCOVER (Left) & OPERATE (Right)
           ========================================================================= */}
       <main
         className={`relative w-full h-screen flex flex-col lg:flex-row overflow-hidden ${
@@ -332,15 +263,9 @@ export default function CinematicLandingPage() {
             ======================================================================= */}
         <section
           onClick={() => router.push('/search')}
-          className={`group relative h-1/2 lg:h-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 cursor-pointer transition-all duration-500 ease-out ${
-            activeView === 'discover'
-              ? 'w-full h-full z-20'
-              : activeView === 'operate'
-              ? 'w-0 h-0 opacity-0 pointer-events-none'
-              : 'lg:w-1/2 w-full hover:bg-white/[0.02]'
-          }`}
+          className="group relative h-1/2 lg:h-full lg:w-1/2 w-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 cursor-pointer hover:bg-white/[0.02] transition-all duration-500 ease-out"
         >
-          {/* Living Photograph Slideshow (No expansion on hover) */}
+          {/* Living Photograph Slideshow */}
           <div className="absolute inset-0 z-0">
             {DISCOVER_IMAGES.map((img, i) => (
               <div
@@ -420,106 +345,108 @@ export default function CinematicLandingPage() {
         </section>
 
         {/* =======================================================================
-            CINEMATIC CENTRAL DIVIDER (In Split Mode on Desktop)
+            CINEMATIC CENTRAL DIVIDER
             ======================================================================= */}
-        {activeView === 'split' && (
-          <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/25 to-transparent z-30 pointer-events-none transform -translate-x-1/2" />
-        )}
+        <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/25 to-transparent z-30 pointer-events-none transform -translate-x-1/2" />
 
         {/* =======================================================================
-            ENVIRONMENT 2: OPERATE (Clicking anywhere navigates to /hotel-admin)
+            ENVIRONMENT 2: OPERATE
+            Replaced with Partner Onboarding contents and UI style.
+            The name "OPERATE" is preserved.
             ======================================================================= */}
         <section
-          onClick={() => {
-            if (isAuthenticated && isHotelAdmin) {
-              router.push('/hotel-admin');
-            } else {
-              router.push('/partner/signup');
-            }
-          }}
-          className={`group relative h-1/2 lg:h-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 border-t lg:border-t-0 lg:border-l border-white/10 cursor-pointer transition-all duration-500 ease-out ${
-            activeView === 'operate'
-              ? 'w-full h-full z-20'
-              : activeView === 'discover'
-              ? 'w-0 h-0 opacity-0 pointer-events-none'
-              : 'lg:w-1/2 w-full hover:bg-white/[0.02]'
-          }`}
+          className="relative h-1/2 lg:h-full lg:w-1/2 w-full overflow-y-auto flex flex-col justify-between p-8 sm:p-12 lg:p-16 bg-[#FAF8F5] text-[#141413] border-t lg:border-t-0 lg:border-l border-[#E8E2D8] transition-all duration-500 ease-out"
         >
-          {/* Living Photograph Slideshow (No expansion on hover) */}
-          <div className="absolute inset-0 z-0">
-            {OPERATE_IMAGES.map((img, i) => (
-              <div
-                key={img.url}
-                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                  i === operateIdx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                }`}
-              >
-                <Image
-                  src={img.url}
-                  alt={img.title}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                  priority={i === 0}
-                />
-              </div>
-            ))}
+          {/* Subtle Warm Backdrop Glow */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-40"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 80% 20%, rgba(197, 168, 128, 0.15) 0%, transparent 60%)',
+            }}
+          />
 
-            {/* Luxury Atmospheric Overlays */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
-            <div className="absolute inset-0 z-10 bg-[#06080E]/30 group-hover:bg-[#06080E]/20 transition-colors duration-300" />
-          </div>
-
-          {/* Content Overlay */}
-          <div className="relative z-20 max-w-xl">
-            {/* Environment Tag */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
-              <Building2 className="w-3 h-3" />
-              <span>For Hotels & Hospitality Teams</span>
+          <div className="relative z-10 max-w-xl my-auto">
+            {/* Environment Tag with Partner Onboarding Style */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E2D8] text-[#AF8F64] text-[10px] font-bold uppercase tracking-[0.25em] mb-4 shadow-2xs">
+              <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
+              <span>HotelStay Partner Ecosystem</span>
             </div>
 
-            {/* Master Headline */}
-            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
+            {/* Preserved Master Headline Name: OPERATE */}
+            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#141413] uppercase leading-none">
               OPERATE
             </h2>
 
-            {/* Supporting Copy */}
-            <p className="mt-3 sm:mt-4 text-base sm:text-xl text-stone-200 font-light leading-relaxed">
-              Everything your property needs. One powerful platform.
+            {/* Partner Onboarding Headline & Copy */}
+            <p className="mt-3 sm:mt-4 text-base sm:text-xl text-[#141413] font-medium leading-snug">
+              Connect Your Property to the World’s Discerning Travelers
             </p>
-            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1">
-              Run your hospitality business with HotelStay.
+            <p className="text-xs sm:text-sm text-[#575650] font-light mt-1.5 leading-relaxed">
+              Complete property onboarding, manage room inventory, set rates, and direct automated bank settlements on one unified partner platform.
             </p>
 
-            {/* Subtle Interactive Access Cue */}
-            <div className="mt-6 sm:mt-8 flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-semibold text-stone-300 group-hover:text-white transition-colors">
-              <span>Access PMS & Management</span>
-              <ArrowRight className="w-4 h-4 text-[#C5A880] group-hover:translate-x-2 transition-transform duration-300" />
+            {/* Partner Onboarding Feature Cards Showcase */}
+            <div className="mt-6 sm:mt-8 space-y-3">
+              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#C5A880] flex items-center justify-center shrink-0 mt-0.5 border border-amber-100">
+                  <FileCheck className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h4 className="font-editorial text-sm font-bold text-[#141413]">6-Step Property Listing Wizard</h4>
+                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
+                    Set up hotel information, suite categories, photo gallery, check-in policies & bank payout details.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
+                  <DollarSign className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h4 className="font-editorial text-sm font-bold text-[#141413]">Transparent 12.5% Commission Rate</h4>
+                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
+                    Industry-leading low take-rate with automated bi-weekly disbursements directly into corporate accounts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 border border-blue-100">
+                  <CalendarCheck className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h4 className="font-editorial text-sm font-bold text-[#141413]">Full Partner PMS Suite</h4>
+                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
+                    Live room availability matrix, housekeeping dispatch, yield controls & guest reservation oversight.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Live Slide Indicator Dots */}
-            <div
-              className="mt-6 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {OPERATE_IMAGES.map((_, dotIdx) => (
-                <button
-                  key={dotIdx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOperateIdx(dotIdx);
-                  }}
-                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
-                    dotIdx === operateIdx
-                      ? 'w-8 bg-[#C5A880]'
-                      : 'w-2 bg-white/30 hover:bg-white/60'
-                  }`}
-                  aria-label={`Go to slide ${dotIdx + 1}`}
-                />
-              ))}
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono">
-                {OPERATE_IMAGES[operateIdx].title}
-              </span>
+            {/* Interactive Partner Onboarding Actions */}
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => router.push('/partner/onboard')}
+                className="px-6 py-3.5 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <span>Start Property Onboarding</span>
+                <ArrowRight className="w-4 h-4 text-[#C5A880]" />
+              </button>
+
+              <button
+                onClick={() => {
+                  if (isAuthenticated && isHotelAdmin) {
+                    router.push('/hotel-admin');
+                  } else {
+                    router.push('/partner/signup');
+                  }
+                }}
+                className="px-6 py-3.5 rounded-full bg-white hover:bg-stone-100 text-[#141413] text-xs font-semibold uppercase tracking-wider border border-[#E8E2D8] shadow-2xs transition-colors cursor-pointer"
+              >
+                <span>Sign In to Partner PMS</span>
+              </button>
             </div>
           </div>
         </section>
