@@ -14,10 +14,14 @@ import {
   FlightRoute,
   NotificationItem,
   HotelApprovalStatus,
+  PublicPlace,
+  ListingCategory,
 } from '@/lib/types';
 import {
   INITIAL_DESTINATIONS,
   INITIAL_HOTELS,
+  INITIAL_APPROVED_LISTINGS,
+  INITIAL_PUBLIC_PLACES,
   INITIAL_RESERVATIONS,
   INITIAL_ROOMS,
   INITIAL_REVIEWS,
@@ -31,7 +35,7 @@ import {
 
 export interface SearchFilters {
   destination: string;
-  category: 'hotels' | 'flights' | 'cars' | 'experiences';
+  category: 'hotels' | 'flights' | 'cars' | 'experiences' | 'holiday_rentals' | 'transport' | 'public_attractions' | 'all';
   checkInDate: string;
   checkOutDate: string;
   adults: number;
@@ -54,6 +58,7 @@ interface MarketplaceContextType {
   destinations: Destination[];
   hotels: Hotel[];
   approvedHotels: Hotel[];
+  publicPlaces: PublicPlace[];
   reservations: Reservation[];
   rooms: IndividualRoom[];
   reviews: Review[];
@@ -73,6 +78,9 @@ interface MarketplaceContextType {
   deleteHotel: (hotelId: string) => void;
   submitHotelForReview: (hotel: Hotel) => void;
   updateHotelStatus: (hotelId: string, status: HotelApprovalStatus, adminFeedbackNotes?: string) => void;
+  addPublicPlace: (place: PublicPlace) => void;
+  updatePublicPlace: (place: PublicPlace) => void;
+  deletePublicPlace: (placeId: string) => void;
   addDestination: (destination: Destination) => void;
   updateDestination: (destination: Destination) => void;
   createReservation: (newReservation: Omit<Reservation, 'id' | 'createdAt'>) => Reservation;
@@ -89,7 +97,7 @@ interface MarketplaceContextType {
 
 const defaultFilters: SearchFilters = {
   destination: '',
-  category: 'hotels',
+  category: 'all',
   checkInDate: '2026-09-24',
   checkOutDate: '2026-09-28',
   adults: 2,
@@ -105,7 +113,8 @@ const MarketplaceContext = createContext<MarketplaceContextType | undefined>(und
 
 export function MarketplaceProvider({ children }: { children: React.ReactNode }) {
   const [destinations, setDestinations] = useState<Destination[]>(INITIAL_DESTINATIONS);
-  const [hotels, setHotels] = useState<Hotel[]>(INITIAL_HOTELS);
+  const [hotels, setHotels] = useState<Hotel[]>(INITIAL_APPROVED_LISTINGS);
+  const [publicPlaces, setPublicPlaces] = useState<PublicPlace[]>(INITIAL_PUBLIC_PLACES);
   const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
   const [rooms, setRooms] = useState<IndividualRoom[]>(INITIAL_ROOMS);
   const [reviews] = useState<Review[]>(INITIAL_REVIEWS);
@@ -115,7 +124,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [experiences] = useState<DMCExperience[]>(INITIAL_EXPERIENCES);
   const [flights] = useState<FlightRoute[]>(INITIAL_FLIGHTS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [wishlist, setWishlist] = useState<string[]>(['hotel-eko-royal', 'hotel-azure']);
+  const [wishlist, setWishlist] = useState<string[]>(['hotel-eko-royal', 'rental-ikoyi-villa']);
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -124,10 +133,18 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       const savedHotels = localStorage.getItem('hotelstay_v2_hotels');
       if (savedHotels) {
         const parsed = JSON.parse(savedHotels);
-        const realOnboarded = Array.isArray(parsed)
-          ? parsed.filter((h: Hotel) => h && !['hotel-eko-royal', 'hotel-azure', 'hotel-serenita', 'hotel-mirage-dubai', 'hotel-highland-loch'].includes(h.id))
-          : [];
-        setHotels(realOnboarded);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const customItems = parsed.filter((h: Hotel) => h && !INITIAL_APPROVED_LISTINGS.some((init) => init.id === h.id));
+          setHotels([...INITIAL_APPROVED_LISTINGS, ...customItems]);
+        }
+      }
+
+      const savedPublicPlaces = localStorage.getItem('hotelstay_v2_public_places');
+      if (savedPublicPlaces) {
+        const parsedPlaces = JSON.parse(savedPublicPlaces);
+        if (Array.isArray(parsedPlaces) && parsedPlaces.length > 0) {
+          setPublicPlaces(parsedPlaces);
+        }
       }
 
       const savedDestinations = localStorage.getItem('hotelstay_v2_destinations');
@@ -139,19 +156,13 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       const savedReservations = localStorage.getItem('hotelstay_v2_reservations');
       if (savedReservations) {
         const parsedRes = JSON.parse(savedReservations);
-        const realRes = Array.isArray(parsedRes)
-          ? parsedRes.filter((r: Reservation) => r && !['HS-78921'].includes(r.id))
-          : [];
-        setReservations(realRes);
+        if (Array.isArray(parsedRes)) setReservations(parsedRes);
       }
 
       const savedRooms = localStorage.getItem('hotelstay_v2_rooms');
       if (savedRooms) {
         const parsedRooms = JSON.parse(savedRooms);
-        const realRooms = Array.isArray(parsedRooms)
-          ? parsedRooms.filter((rm: IndividualRoom) => rm && !['rm-eko-401', 'rm-eko-402'].includes(rm.id))
-          : [];
-        setRooms(realRooms);
+        if (Array.isArray(parsedRooms)) setRooms(parsedRooms);
       }
 
       const savedNotifs = localStorage.getItem('hotelstay_v2_notifs');
@@ -161,8 +172,49 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  // Approved hotels that can be publicly discovered on the marketplace
-  const approvedHotels = hotels.filter((h) => h.status === 'approved' || h.status === 'active');
+  // Approved managed listings MUST NOT appear publicly before approval and publication
+  const approvedHotels = hotels.filter(
+    (h) => h.status === 'approved' || h.status === 'active' || h.status === 'live'
+  );
+
+  const addPublicPlace = (place: PublicPlace) => {
+    setPublicPlaces((prev) => {
+      const updated = [place, ...prev.filter((p) => p.id !== place.id)];
+      localStorage.setItem('hotelstay_v2_public_places', JSON.stringify(updated));
+      return updated;
+    });
+    showToast({
+      title: 'Public Attraction Curated',
+      description: `${place.name} is now discoverable in search.`,
+      type: 'success',
+    });
+  };
+
+  const updatePublicPlace = (updatedPlace: PublicPlace) => {
+    setPublicPlaces((prev) => {
+      const updated = prev.map((p) => (p.id === updatedPlace.id ? updatedPlace : p));
+      localStorage.setItem('hotelstay_v2_public_places', JSON.stringify(updated));
+      return updated;
+    });
+    showToast({
+      title: 'Attraction Updated',
+      description: `${updatedPlace.name} details saved.`,
+      type: 'info',
+    });
+  };
+
+  const deletePublicPlace = (placeId: string) => {
+    setPublicPlaces((prev) => {
+      const updated = prev.filter((p) => p.id !== placeId);
+      localStorage.setItem('hotelstay_v2_public_places', JSON.stringify(updated));
+      return updated;
+    });
+    showToast({
+      title: 'Attraction Removed',
+      description: 'Public place record deleted.',
+      type: 'info',
+    });
+  };
 
   const addHotel = (newHotel: Hotel) => {
     setHotels((prev) => {
@@ -411,6 +463,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         destinations,
         hotels,
         approvedHotels,
+        publicPlaces,
         reservations,
         rooms,
         reviews,
@@ -430,6 +483,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         deleteHotel,
         submitHotelForReview,
         updateHotelStatus,
+        addPublicPlace,
+        updatePublicPlace,
+        deletePublicPlace,
         addDestination,
         updateDestination,
         createReservation,

@@ -9,15 +9,14 @@ import {
   Compass,
   Building2,
   ArrowRight,
-  DollarSign,
-  CalendarCheck,
-  FileCheck,
-  CheckCircle2,
   Sparkles,
+  ShieldCheck,
+  Briefcase,
+  Layers,
 } from 'lucide-react';
 
 // ============================================================================
-// Curated Luxury Photography Collections for DISCOVER
+// Curated Luxury Photography Collections for DISCOVER & OPERATE
 // ============================================================================
 const DISCOVER_IMAGES = [
   {
@@ -52,7 +51,35 @@ const DISCOVER_IMAGES = [
   },
 ];
 
-// Phrase structure for the physics drop & dangle intro at 6s
+const OPERATE_IMAGES = [
+  {
+    url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=85',
+    title: 'Boutique Estate Management',
+    subtitle: 'Seamless PMS, multi-category inventory & operations',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=85',
+    title: 'Luxury Villa Hosting',
+    subtitle: 'Direct guest inquiries, availability & rate controls',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2000&q=85',
+    title: 'Multi-Tenant Portfolio',
+    subtitle: 'Hotels, residences, transport & curated experiences',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2000&q=85',
+    title: 'Chauffeur & Fleet Logistics',
+    subtitle: 'Vehicle dispatch, route scheduling & driver management',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=85',
+    title: 'Hospitality Yield Controls',
+    subtitle: 'Automated bank payouts & real-time revenue analytics',
+  },
+];
+
+// Phrase structure for the intro sequence
 const INTRO_WORDS = [
   { word: 'WELCOME', letters: ['W', 'E', 'L', 'C', 'O', 'M', 'E'] },
   { word: 'TO', letters: ['T', 'O'] },
@@ -67,8 +94,9 @@ export default function CinematicLandingPage() {
   const [introStage, setIntroStage] = useState<number>(3);
   const [introCompleted, setIntroCompleted] = useState<boolean>(true);
 
-  // Slideshow index for DISCOVER continuous living photograph crossfades
+  // Slideshow index for DISCOVER & OPERATE living photograph crossfades
   const [discoverIdx, setDiscoverIdx] = useState<number>(0);
+  const [operateIdx, setOperateIdx] = useState<number>(0);
 
   // --------------------------------------------------------------------------
   // 1. INTRO TIMING SEQUENCE (Runs ONLY on first entry in session)
@@ -76,21 +104,27 @@ export default function CinematicLandingPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Check if intro has already been shown in this browser session
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setIntroStage(3);
+      setIntroCompleted(true);
+      return;
+    }
+
     const hasShownIntro = sessionStorage.getItem('hotelstay_intro_shown');
 
     if (!hasShownIntro) {
-      // First entry: initialize and play intro
       setIntroStage(0);
       setIntroCompleted(false);
 
       const t1 = setTimeout(() => {
         setIntroStage(1);
-      }, 3000);
+      }, 2500);
 
       const t2 = setTimeout(() => {
         setIntroStage(2);
-      }, 6000);
+      }, 5000);
 
       const t3 = setTimeout(() => {
         setIntroStage(3);
@@ -101,8 +135,8 @@ export default function CinematicLandingPage() {
           } catch (e) {
             console.error(e);
           }
-        }, 1400);
-      }, 8800);
+        }, 1200);
+      }, 7500);
 
       return () => {
         clearTimeout(t1);
@@ -125,7 +159,7 @@ export default function CinematicLandingPage() {
   };
 
   // --------------------------------------------------------------------------
-  // 2. DISCOVER SLIDESHOW TIMER
+  // 2. DISCOVER & OPERATE SLIDESHOW TIMERS
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (!introCompleted && introStage < 3) return;
@@ -134,8 +168,13 @@ export default function CinematicLandingPage() {
       setDiscoverIdx((prev) => (prev + 1) % DISCOVER_IMAGES.length);
     }, 6500);
 
+    const operateInterval = setInterval(() => {
+      setOperateIdx((prev) => (prev + 1) % OPERATE_IMAGES.length);
+    }, 7000);
+
     return () => {
       clearInterval(discoverInterval);
+      clearInterval(operateInterval);
     };
   }, [introCompleted, introStage]);
 
@@ -144,26 +183,26 @@ export default function CinematicLandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#06080E] text-white font-sans select-none">
       {/* =========================================================================
-          OPENING CINEMATIC INTRO (3s Anticipation -> 3s Logo Alone -> Letter Drop & Dangle -> Portal)
+          OPENING CINEMATIC INTRO (Anticipation -> Logo Emblem -> Letter Drop -> Portal)
           ========================================================================= */}
       {!introCompleted && (
         <div
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-white ${
+          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#06080E] transition-opacity duration-700 ${
             introStage >= 3 ? 'animate-portal-out pointer-events-none' : 'opacity-100'
           }`}
         >
-          {/* Subtle Ambient Radial Glow */}
+          {/* Ambient Radial Glow */}
           <div
             className="absolute inset-0 pointer-events-none opacity-40"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 50% 50%, rgba(197, 168, 128, 0.22) 0%, transparent 65%)',
+                'radial-gradient(circle at 50% 50%, rgba(197, 168, 128, 0.25) 0%, transparent 65%)',
             }}
           />
 
           {/* Luminous Portal Ring Effect */}
           {introStage >= 3 && (
-            <div className="absolute w-72 h-72 rounded-full border-2 border-[#C5A880] shadow-[0_0_80px_rgba(197,168,128,0.8)] pointer-events-none animate-portal-ring" />
+            <div className="absolute w-72 h-72 rounded-full border-2 border-[#C5A880] shadow-[0_0_80px_rgba(197,168,128,0.8)] pointer-events-none animate-portal-ring motion-reduce:animate-none" />
           )}
 
           <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl">
@@ -175,7 +214,7 @@ export default function CinematicLandingPage() {
                   : 'opacity-0 translate-y-8 scale-90 pointer-events-none'
               }`}
             >
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-2xl border border-stone-200 ring-4 ring-[#C5A880]/35 bg-white">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-2xl border border-white/20 ring-4 ring-[#C5A880]/35 bg-stone-900">
                 <Image
                   src="/images/hotelstay-logo.jpeg"
                   alt="HotelStay Logo"
@@ -187,18 +226,18 @@ export default function CinematicLandingPage() {
               </div>
             </div>
 
-            {/* Step 2: "WELCOME TO HOTELSTAY" Letter-by-Letter Drop & Dangle */}
+            {/* Step 2: "WELCOME TO HOTELSTAY.COM" Letter-by-Letter Drop & Dangle */}
             {introStage >= 2 && (
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-2">
                 {INTRO_WORDS.map((item, wordIdx) => (
                   <div key={wordIdx} className="inline-flex items-center">
                     {item.letters.map((char, charIdx) => {
                       const currentIdx = letterRunningIndex++;
-                      const delayMs = currentIdx * 65;
+                      const delayMs = currentIdx * 60;
                       return (
                         <span
                           key={charIdx}
-                          className="animate-letter-dangle font-editorial text-2xl sm:text-4xl md:text-5xl font-bold tracking-[0.18em] text-[#141413] select-none"
+                          className="animate-letter-dangle motion-reduce:animate-none font-editorial text-2xl sm:text-4xl md:text-5xl font-bold tracking-[0.18em] text-stone-100 select-none"
                           style={{
                             animationDelay: `${delayMs}ms`,
                           }}
@@ -216,7 +255,7 @@ export default function CinematicLandingPage() {
           {/* Skip Button */}
           <button
             onClick={skipIntro}
-            className="absolute bottom-8 right-8 text-[11px] uppercase tracking-[0.2em] font-semibold text-stone-400 hover:text-stone-700 transition-colors py-2 px-4 rounded-full border border-stone-200 hover:border-stone-400 cursor-pointer"
+            className="absolute bottom-8 right-8 text-[11px] uppercase tracking-[0.2em] font-semibold text-stone-400 hover:text-white transition-colors py-2 px-4 rounded-full border border-white/10 hover:border-white/30 cursor-pointer backdrop-blur-sm"
           >
             Skip Intro →
           </button>
@@ -225,7 +264,6 @@ export default function CinematicLandingPage() {
 
       {/* =========================================================================
           MINIMAL LUXURY TOP NAVIGATION
-          ("Discover, Overview and Operate" button removed as requested)
           ========================================================================= */}
       <header className="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-6 sm:py-8 pointer-events-none">
         {/* Brand Wordmark & Emblem */}
@@ -243,15 +281,21 @@ export default function CinematicLandingPage() {
               priority
             />
           </div>
-          <span className="font-editorial text-xl sm:text-2xl font-bold tracking-[0.25em] text-white group-hover:text-[#C5A880] transition-colors">
-            HOTELSTAY
-          </span>
+          <div className="flex flex-col">
+            <span className="font-editorial text-xl sm:text-2xl font-bold tracking-[0.25em] text-white group-hover:text-[#C5A880] transition-colors">
+              HOTELSTAY
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.3em] text-stone-400 font-mono">
+              Marketplace Ecosystem
+            </span>
+          </div>
         </div>
       </header>
 
       {/* =========================================================================
           MAIN CINEMATIC ENVIRONMENT CONTAINER
           Split Screen Layout: DISCOVER (Left) & OPERATE (Right)
+          Both sections feature matching living photography slideshows & dark luxury styling.
           ========================================================================= */}
       <main
         className={`relative w-full h-screen flex flex-col lg:flex-row overflow-hidden ${
@@ -259,13 +303,13 @@ export default function CinematicLandingPage() {
         }`}
       >
         {/* =======================================================================
-            ENVIRONMENT 1: DISCOVER (Clicking anywhere navigates to /search)
+            ENVIRONMENT 1: DISCOVER (Customer Marketplace)
             ======================================================================= */}
         <section
           onClick={() => router.push('/search')}
           className="group relative h-1/2 lg:h-full lg:w-1/2 w-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 cursor-pointer hover:bg-white/[0.02] transition-all duration-500 ease-out"
         >
-          {/* Living Photograph Slideshow */}
+          {/* DISCOVER Living Photograph Slideshow */}
           <div className="absolute inset-0 z-0">
             {DISCOVER_IMAGES.map((img, i) => (
               <div
@@ -279,22 +323,22 @@ export default function CinematicLandingPage() {
                   alt={img.title}
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
+                  className="object-cover transition-transform duration-10000 ease-linear scale-105 group-hover:scale-110"
                   priority={i === 0}
                 />
               </div>
             ))}
 
             {/* Luxury Atmospheric Overlays */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#06080E] via-[#06080E]/60 to-[#06080E]/30" />
             <div className="absolute inset-0 z-10 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
           </div>
 
           {/* Content Overlay */}
           <div className="relative z-20 max-w-xl">
-            {/* Environment Tag */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
-              <Compass className="w-3 h-3" />
+            {/* Environment Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
+              <Compass className="w-3.5 h-3.5" />
               <span>For Guests & Travelers</span>
             </div>
 
@@ -305,10 +349,10 @@ export default function CinematicLandingPage() {
 
             {/* Supporting Copy */}
             <p className="mt-3 sm:mt-4 text-base sm:text-xl text-stone-200 font-light leading-relaxed">
-              Exceptional places. Memorable stays.
+              Exceptional places. Memorable stays & experiences.
             </p>
-            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1">
-              Find your next stay with HotelStay.
+            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1.5">
+              Explore verified hotels, luxury villas, chauffeur logistics & curated attractions.
             </p>
 
             {/* Subtle Interactive Access Cue */}
@@ -334,10 +378,10 @@ export default function CinematicLandingPage() {
                       ? 'w-8 bg-[#C5A880]'
                       : 'w-2 bg-white/30 hover:bg-white/60'
                   }`}
-                  aria-label={`Go to slide ${dotIdx + 1}`}
+                  aria-label={`Go to discover slide ${dotIdx + 1}`}
                 />
               ))}
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono">
+              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono truncate max-w-[200px]">
                 {DISCOVER_IMAGES[discoverIdx].title}
               </span>
             </div>
@@ -347,92 +391,76 @@ export default function CinematicLandingPage() {
         {/* =======================================================================
             CINEMATIC CENTRAL DIVIDER
             ======================================================================= */}
-        <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/25 to-transparent z-30 pointer-events-none transform -translate-x-1/2" />
+        <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-white/20 to-transparent z-30 pointer-events-none transform -translate-x-1/2" />
 
         {/* =======================================================================
-            ENVIRONMENT 2: OPERATE
-            Replaced with Partner Onboarding contents and UI style.
-            The name "OPERATE" is preserved.
+            ENVIRONMENT 2: OPERATE (Provider Marketplace Portal)
+            Matching living photography slideshow, dark luxury visual caliber, typography & overlays.
             ======================================================================= */}
         <section
-          className="relative h-1/2 lg:h-full lg:w-1/2 w-full overflow-y-auto flex flex-col justify-between p-8 sm:p-12 lg:p-16 bg-[#FAF8F5] text-[#141413] border-t lg:border-t-0 lg:border-l border-[#E8E2D8] transition-all duration-500 ease-out"
+          onClick={() => {
+            if (isAuthenticated && isHotelAdmin) {
+              router.push('/hotel-admin');
+            } else {
+              router.push('/partner');
+            }
+          }}
+          className="group relative h-1/2 lg:h-full lg:w-1/2 w-full overflow-hidden flex flex-col justify-end p-8 sm:p-12 lg:p-16 cursor-pointer hover:bg-white/[0.02] transition-all duration-500 ease-out border-t lg:border-t-0 lg:border-l border-white/10"
         >
-          {/* Subtle Warm Backdrop Glow */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-40"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 80% 20%, rgba(197, 168, 128, 0.15) 0%, transparent 60%)',
-            }}
-          />
+          {/* OPERATE Living Photograph Slideshow */}
+          <div className="absolute inset-0 z-0">
+            {OPERATE_IMAGES.map((img, i) => (
+              <div
+                key={img.url}
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                  i === operateIdx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                <Image
+                  src={img.url}
+                  alt={img.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-10000 ease-linear scale-105 group-hover:scale-110"
+                  priority={i === 0}
+                />
+              </div>
+            ))}
 
-          <div className="relative z-10 max-w-xl my-auto">
-            {/* Environment Tag with Partner Onboarding Style */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E8E2D8] text-[#AF8F64] text-[10px] font-bold uppercase tracking-[0.25em] mb-4 shadow-2xs">
-              <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
-              <span>HotelStay Partner Ecosystem</span>
+            {/* Matching Dark Atmospheric Overlays */}
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#06080E] via-[#06080E]/65 to-[#06080E]/30" />
+            <div className="absolute inset-0 z-10 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+          </div>
+
+          {/* Content Overlay */}
+          <div className="relative z-20 max-w-xl">
+            {/* Environment Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>For Owners & Service Providers</span>
             </div>
 
-            {/* Preserved Master Headline Name: OPERATE */}
-            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#141413] uppercase leading-none">
+            {/* Master Headline */}
+            <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
               OPERATE
             </h2>
 
-            {/* Partner Onboarding Headline & Copy */}
-            <p className="mt-3 sm:mt-4 text-base sm:text-xl text-[#141413] font-medium leading-snug">
-              Connect Your Property to the World’s Discerning Travelers
+            {/* Supporting Copy */}
+            <p className="mt-3 sm:mt-4 text-base sm:text-xl text-stone-200 font-light leading-relaxed">
+              Multi-tenant provider platform & management ecosystem.
             </p>
-            <p className="text-xs sm:text-sm text-[#575650] font-light mt-1.5 leading-relaxed">
-              Complete property onboarding, manage room inventory, set rates, and direct automated bank settlements on one unified partner platform.
+            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1.5">
+              List hotels, villas, transport fleets or experiences. Guided onboarding & rate management.
             </p>
 
-            {/* Partner Onboarding Feature Cards Showcase */}
-            <div className="mt-6 sm:mt-8 space-y-3">
-              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#C5A880] flex items-center justify-center shrink-0 mt-0.5 border border-amber-100">
-                  <FileCheck className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h4 className="font-editorial text-sm font-bold text-[#141413]">6-Step Property Listing Wizard</h4>
-                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
-                    Set up hotel information, suite categories, photo gallery, check-in policies & bank payout details.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-100">
-                  <DollarSign className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h4 className="font-editorial text-sm font-bold text-[#141413]">Transparent 12.5% Commission Rate</h4>
-                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
-                    Industry-leading low take-rate with automated bi-weekly disbursements directly into corporate accounts.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-[#E8E2D8] shadow-2xs flex items-start gap-3.5 hover:border-[#C5A880] transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 border border-blue-100">
-                  <CalendarCheck className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h4 className="font-editorial text-sm font-bold text-[#141413]">Full Partner PMS Suite</h4>
-                  <p className="text-xs text-[#575650] mt-0.5 leading-relaxed">
-                    Live room availability matrix, housekeeping dispatch, yield controls & guest reservation oversight.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Interactive Partner Onboarding Actions */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            {/* Interactive Access Cue & Action Buttons */}
+            <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => router.push('/partner/onboard')}
-                className="px-6 py-3.5 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+                onClick={() => router.push('/partner')}
+                className="px-6 py-3 rounded-full bg-[#C5A880] hover:bg-[#b0926a] text-[#06080E] text-xs font-bold uppercase tracking-wider shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
               >
-                <span>Start Property Onboarding</span>
-                <ArrowRight className="w-4 h-4 text-[#C5A880]" />
+                <span>Partner Portal</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
 
               <button
@@ -443,10 +471,35 @@ export default function CinematicLandingPage() {
                     router.push('/partner/signup');
                   }
                 }}
-                className="px-6 py-3.5 rounded-full bg-white hover:bg-stone-100 text-[#141413] text-xs font-semibold uppercase tracking-wider border border-[#E8E2D8] shadow-2xs transition-colors cursor-pointer"
+                className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wider border border-white/20 backdrop-blur-md transition-colors cursor-pointer"
               >
-                <span>Sign In to Partner PMS</span>
+                <span>{isAuthenticated ? 'Provider Dashboard' : 'Sign In / Register'}</span>
               </button>
+            </div>
+
+            {/* Live Slide Indicator Dots */}
+            <div
+              className="mt-6 flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {OPERATE_IMAGES.map((_, dotIdx) => (
+                <button
+                  key={dotIdx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOperateIdx(dotIdx);
+                  }}
+                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
+                    dotIdx === operateIdx
+                      ? 'w-8 bg-[#C5A880]'
+                      : 'w-2 bg-white/30 hover:bg-white/60'
+                  }`}
+                  aria-label={`Go to operate slide ${dotIdx + 1}`}
+                />
+              ))}
+              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono truncate max-w-[200px]">
+                {OPERATE_IMAGES[operateIdx].title}
+              </span>
             </div>
           </div>
         </section>
@@ -454,21 +507,13 @@ export default function CinematicLandingPage() {
 
       {/* =========================================================================
           MINIMAL FOOTER BRAND SIGNATURE
+          (Lower-right "Destination" and "Partner Onboarding" buttons REMOVED completely per brief)
           ========================================================================= */}
       <footer className="fixed bottom-0 inset-x-0 z-30 px-6 sm:px-12 py-4 flex items-center justify-between text-[11px] font-medium tracking-widest uppercase text-stone-400 pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-6">
-          <span>HotelStay Ecosystem</span>
-          <span className="hidden md:inline text-stone-600">•</span>
-          <span className="hidden md:inline">Connecting Guests & Luxury Hospitality</span>
-        </div>
-
-        <div className="pointer-events-auto flex items-center gap-5">
-          <Link href="/destinations" className="hover:text-white transition-colors hidden sm:inline">
-            Destinations
-          </Link>
-          <Link href="/partner/onboard" className="hover:text-white transition-colors hidden sm:inline">
-            Partner Onboarding
-          </Link>
+        <div className="pointer-events-auto flex items-center gap-4 sm:gap-6">
+          <span className="text-stone-300 font-semibold">HotelStay Ecosystem</span>
+          <span className="text-stone-600">•</span>
+          <span className="text-stone-400">Multi-Tenant Vacation & Experience Marketplace</span>
         </div>
       </footer>
     </div>

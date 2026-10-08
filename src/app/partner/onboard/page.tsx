@@ -144,29 +144,57 @@ const NIGERIAN_BANKS = [
 export default function PartnerOnboardingPage() {
   const router = useRouter();
   const { submitHotelForReview, showToast } = useMarketplace();
-  const { currentPersona } = useAuth();
+  const { currentPersona, isAuthenticated, openAuthModal } = useAuth();
 
   const [step, setStep] = useState<number>(1);
   const [submitted, setSubmitted] = useState<boolean>(false);
 
-  // STEP 1: HOTEL INFORMATION & LOCATION
+  // CATEGORY SELECTION (Hotels, Holiday Rentals, Transport, Tours & Experiences, Other)
+  const [selectedCategory, setSelectedCategory] = useState<'hotels' | 'holiday_rentals' | 'transport' | 'tours_experiences' | 'other_hospitality'>('hotels');
+
+  // STEP 1: BUSINESS IDENTITY & LOCATION
   const [hotelName, setHotelName] = useState('The Victoria Cliffside Boutique Hotel');
   const [hotelType, setHotelType] = useState('Boutique Hotel');
   const [description, setDescription] = useState(
     'A secluded waterfront boutique sanctuary crafted with monolithic stone architecture, private heated terrace plunge pools, and bespoke African art curation.'
   );
   const [hotelPhone, setHotelPhone] = useState('+234 802 987 6543');
-  const [hotelEmail, setHotelEmail] = useState(currentPersona.email || 'stay@victoriacliffside.com');
+  const [hotelEmail, setHotelEmail] = useState(currentPersona?.email || 'stay@victoriacliffside.com');
   const [website, setWebsite] = useState('https://victoriacliffside.com');
   const [socialMedia, setSocialMedia] = useState('@victoriacliffside_lagos');
+
+  // CATEGORY-SPECIFIC DETAILS
+  // Holiday Rental details
+  const [rentalPropertyType, setRentalPropertyType] = useState('Waterfront Villa');
+  const [bedroomsCount, setBedroomsCount] = useState(4);
+  const [bathroomsCount, setBathroomsCount] = useState(5);
+  const [maxCapacity, setMaxCapacity] = useState(8);
+  const [minimumStayNights, setMinimumStayNights] = useState(2);
+  const [nightlyRate, setNightlyRate] = useState(950);
+
+  // Transport details
+  const [vehicleType, setVehicleType] = useState('Range Rover Autobiography SV / Maybach S-Class');
+  const [passengerCapacity, setPassengerCapacity] = useState(4);
+  const [luggageCapacity, setLuggageCapacity] = useState(4);
+  const [driverOption, setDriverOption] = useState<'self_drive' | 'with_driver' | 'both'>('with_driver');
+  const [dailyRate, setDailyRate] = useState(480);
+  const [hourlyRate, setHourlyRate] = useState(75);
+  const [serviceAreas, setServiceAreas] = useState('Lagos, Victoria Island, Ikoyi, Ikeja Airport');
+
+  // Tours & Experiences details
+  const [durationHours, setDurationHours] = useState(8);
+  const [groupSizeLimit, setGroupSizeLimit] = useState(12);
+  const [includedServices, setIncludedServices] = useState('Yacht Charter, Private Chef Lunch, Open Bar, Watersports');
+  const [pricePerPerson, setPricePerPerson] = useState(350);
+  const [meetingPoint, setMeetingPoint] = useState('Lekki Phase 1 Marina Berth 4');
 
   // LOCATION FIELDS
   const [country, setCountry] = useState('Nigeria');
   const [countrySearch, setCountrySearch] = useState('');
   const [isCountryOpen, setIsCountryOpen] = useState(false);
 
-  const [city, setCity] = useState('Ibadan');
-  const [stateProvince, setStateProvince] = useState('Oyo');
+  const [city, setCity] = useState('Lagos');
+  const [stateProvince, setStateProvince] = useState('Lagos');
   const [fullAddress, setFullAddress] = useState('8 Marina Terrace, Victoria Island');
   const [postalCode, setPostalCode] = useState('101241');
 
@@ -187,6 +215,65 @@ export default function PartnerOnboardingPage() {
   const [poolPhoto, setPoolPhoto] = useState('https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1000&q=80');
   const [facilityPhoto, setFacilityPhoto] = useState('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1000&q=80');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Draft Management Logic
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem('hotelstay_onboard_draft');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.hotelName) setHotelName(parsed.hotelName);
+        if (parsed.selectedCategory) setSelectedCategory(parsed.selectedCategory);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.city) setCity(parsed.city);
+        if (parsed.fullAddress) setFullAddress(parsed.fullAddress);
+        showToast({
+          title: 'Draft Restored',
+          description: 'Your saved onboarding progress has been restored.',
+          type: 'info',
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const saveDraft = () => {
+    const draftData = {
+      selectedCategory,
+      hotelName,
+      hotelType,
+      description,
+      hotelPhone,
+      hotelEmail,
+      website,
+      country,
+      city,
+      stateProvince,
+      fullAddress,
+      rentalPropertyType,
+      bedroomsCount,
+      bathroomsCount,
+      maxCapacity,
+      nightlyRate,
+      vehicleType,
+      dailyRate,
+      durationHours,
+      pricePerPerson,
+      step,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem('hotelstay_onboard_draft', JSON.stringify(draftData));
+      showToast({
+        title: 'Draft Saved Successfully',
+        description: 'You can pause and resume onboarding anytime.',
+        type: 'success',
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Policies
   const [checkInTime, setCheckInTime] = useState('15:00');

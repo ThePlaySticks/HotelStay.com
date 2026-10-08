@@ -3,8 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/common/Navbar';
 import { Footer } from '@/components/common/Footer';
+import { useAuth } from '@/context/AuthContext';
 import {
   Building2,
   ShieldCheck,
@@ -15,52 +17,104 @@ import {
   CheckCircle2,
   Users,
   Sparkles,
+  Palmtree,
+  Car,
+  Compass,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
 
 export default function PartnerLandingPage() {
+  const router = useRouter();
+  const { isAuthenticated, isHotelAdmin, openAuthModal } = useAuth();
+
+  const handleStartOnboarding = () => {
+    if (!isAuthenticated) {
+      openAuthModal({
+        mode: 'signup',
+        role: 'hotel_manager',
+        title: 'Create Partner Account to Onboard',
+        description: 'Please create a host or partner account first to select your business category and begin onboarding.',
+        redirectUrl: '/partner/onboard',
+      });
+    } else {
+      router.push('/partner/onboard');
+    }
+  };
+
+  const handleLoginClick = () => {
+    if (isAuthenticated && isHotelAdmin) {
+      router.push('/hotel-admin');
+    } else {
+      openAuthModal({
+        mode: 'signin',
+        role: 'hotel_manager',
+        title: 'Partner Sign In',
+        description: 'Sign in to access your private provider dashboard and active listings.',
+        redirectUrl: '/hotel-admin',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative py-24 bg-[#06080E] text-white overflow-hidden">
+      <section className="relative py-20 sm:py-28 bg-[#06080E] text-white overflow-hidden">
         <div className="absolute inset-0 z-0 opacity-40">
           <Image
-            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80"
-            alt="Luxury Resort"
+            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1600&q=80"
+            alt="Luxury Hospitality Management"
             fill
             className="object-cover"
+            priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#06080E] via-[#06080E]/80 to-[#06080E]/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#06080E] via-[#06080E]/75 to-[#06080E]/40" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl mx-auto">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#C5A880] text-xs font-semibold uppercase tracking-widest mb-6">
             <Building2 className="w-3.5 h-3.5" />
-            <span>HotelStay Partner Ecosystem</span>
+            <span>OPERATE · Multi-Tenant Provider Platform</span>
           </div>
 
           <h1 className="font-editorial text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
-            Connect Your Property to the World's Discerning Travelers
+            Register & Manage Your Hospitality & Experience Business
           </h1>
 
           <p className="mt-4 text-base sm:text-lg text-stone-300 font-light leading-relaxed">
-            Direct PMS connectivity, transparent settlement cycles, zero intermediary markups, and verified guests.
+            Authentic multi-tenant marketplace for Hotels, Holiday Rentals, Transport Fleets, and Bookable Experiences.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/partner/onboard"
-              className="px-8 py-4 rounded-full bg-[#C5A880] hover:bg-[#AF8F64] text-[#141413] text-xs font-bold uppercase tracking-wider shadow-lg transition-transform hover:scale-105"
-            >
-              Start Property Onboarding
-            </Link>
-            <Link
-              href="/hotel-admin"
-              className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wider border border-white/20 backdrop-blur-md transition-colors"
-            >
-              Sign In to Partner PMS
-            </Link>
+          {/* Phase 3 Requirement: Clear Create Account & Log In choices before onboarding */}
+          <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl max-w-xl mx-auto space-y-6">
+            <div className="text-center space-y-1">
+              <span className="text-[10px] uppercase font-bold tracking-[0.25em] text-[#C5A880]">
+                Step 1: Authentication Required
+              </span>
+              <h3 className="font-editorial text-2xl font-bold text-white">
+                Get Started on HotelStay OPERATE
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={handleStartOnboarding}
+                className="w-full py-4 px-5 rounded-2xl bg-[#C5A880] hover:bg-[#AF8F64] text-[#06080E] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg hover:scale-105 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create Partner Account</span>
+              </button>
+
+              <button
+                onClick={handleLoginClick}
+                className="w-full py-4 px-5 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold uppercase tracking-wider border border-white/20 backdrop-blur-md flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <LogIn className="w-4 h-4 text-[#C5A880]" />
+                <span>{isAuthenticated ? 'Provider Dashboard' : 'Log In'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>

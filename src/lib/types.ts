@@ -1,5 +1,13 @@
 export type UserRole = 'guest' | 'hotel_owner' | 'hotel_manager' | 'front_desk' | 'housekeeping' | 'super_admin';
 
+export type ListingCategory =
+  | 'hotels'
+  | 'holiday_rentals'
+  | 'transport'
+  | 'tours_experiences'
+  | 'other_hospitality'
+  | 'public_attractions';
+
 export type HotelApprovalStatus =
   | 'draft'
   | 'submitted'
@@ -97,12 +105,70 @@ export type LuxuryTier =
   | 'Bed & Breakfast'
   | 'Resort & Spa';
 
+export interface CategoryDetails {
+  // Holiday Rentals
+  propertyType?: string;
+  bedroomsCount?: number;
+  bathroomsCount?: number;
+  maxCapacity?: number;
+  minimumStayNights?: number;
+  nightlyRate?: number;
+
+  // Transport
+  vehicleType?: string;
+  passengerCapacity?: number;
+  luggageCapacity?: number;
+  driverOption?: 'self_drive' | 'with_driver' | 'both';
+  dailyRate?: number;
+  hourlyRate?: number;
+  serviceAreas?: string[];
+
+  // Tours & Experiences
+  durationHours?: number;
+  groupSizeLimit?: number;
+  includedServices?: string[];
+  pricePerPerson?: number;
+  meetingPoint?: string;
+  scheduleDays?: string[];
+}
+
+export interface PublicPlace {
+  id: string;
+  slug: string;
+  name: string;
+  category: 'landmark' | 'beach' | 'museum' | 'park' | 'cultural' | 'nature' | 'market';
+  description: string;
+  location: {
+    city: string;
+    country: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  heroImage: string;
+  galleryImages: string[];
+  facilities: string[];
+  visitorInfo: {
+    openingHours?: string;
+    entryFee?: string;
+    bestTimeToVisit?: string;
+    contactPhone?: string;
+    website?: string;
+  };
+  verificationStatus: 'verified' | 'unverified';
+  verificationSource?: string;
+  isBookable: boolean;
+  createdAt: string;
+}
+
 export interface Hotel {
   id: string;
   slug: string;
   name: string;
   tagline: string;
   description: string;
+  category?: ListingCategory;
+  categoryDetails?: CategoryDetails;
   managerId?: string;
   managerEmail?: string;
   destinationId?: string;

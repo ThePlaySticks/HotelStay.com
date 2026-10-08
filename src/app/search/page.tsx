@@ -24,61 +24,90 @@ import {
   CheckCircle2,
   Calendar,
   Users,
+  ShieldCheck,
+  HelpCircle,
+  Clock,
+  Ticket,
+  ExternalLink,
 } from 'lucide-react';
+import { PublicPlace, Hotel } from '@/lib/types';
 
 function DiscoverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const destQuery = searchParams.get('dest') || '';
-  const { approvedHotels } = useMarketplace();
+  const categoryParam = searchParams.get('category') || 'all';
+  
+  const { approvedHotels, publicPlaces } = useMarketplace();
   const { isAuthenticated, openAuthModal } = useAuth();
 
-  // Search & Filter state
+  // Search & Category Filter state
   const [searchQuery, setSearchQuery] = useState(destQuery);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'hotels' | 'vacation_stays' | 'cars'>('all');
+  const [activeTab, setActiveTab] = useState<string>(categoryParam);
+  const [selectedAttraction, setSelectedAttraction] = useState<PublicPlace | null>(null);
 
-  // Filtered onboarded properties & services
-  const filteredHotels = useMemo(() => {
-    return approvedHotels.filter((hotel) => {
+  // Filtered approved managed listings
+  const filteredListings = useMemo(() => {
+    return approvedHotels.filter((item) => {
+      // Status check: managed listings MUST NOT appear publicly before approval and publication
+      const isPublished = item.status === 'approved' || item.status === 'live' || item.status === 'active';
+      if (!isPublished) return false;
+
+      // Category filter
+      if (activeTab !== 'all' && activeTab !== 'public_attractions') {
+        const cat = item.category || 'hotels';
+        if (cat !== activeTab) return false;
+      }
+
+      if (activeTab === 'public_attractions') return false;
+
+      // Search query filter
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
-        hotel.name.toLowerCase().includes(q) ||
-        hotel.location.city.toLowerCase().includes(q) ||
-        hotel.location.country.toLowerCase().includes(q) ||
-        (hotel.description && hotel.description.toLowerCase().includes(q))
+        item.name.toLowerCase().includes(q) ||
+        item.location.city.toLowerCase().includes(q) ||
+        item.location.country.toLowerCase().includes(q) ||
+        (item.description && item.description.toLowerCase().includes(q))
       );
     });
-  }, [approvedHotels, searchQuery]);
+  }, [approvedHotels, activeTab, searchQuery]);
 
-  const handleBookHotelClick = (e: React.MouseEvent, hotelSlug: string) => {
+  // Filtered public attractions
+  const filteredAttractions = useMemo(() => {
+    if (activeTab !== 'all' && activeTab !== 'public_attractions') return [];
+
+    return publicPlaces.filter((place) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        place.name.toLowerCase().includes(q) ||
+        place.location.city.toLowerCase().includes(q) ||
+        place.location.country.toLowerCase().includes(q) ||
+        place.description.toLowerCase().includes(q)
+      );
+    });
+  }, [publicPlaces, activeTab, searchQuery]);
+
+  const handleBookClick = (e: React.MouseEvent, slug: string) => {
     e.preventDefault();
     if (!isAuthenticated) {
       openAuthModal({
         mode: 'signup',
         role: 'guest',
-        title: 'Sign Up to Book Suite',
-        description: 'Create an account or sign in to complete your reservation and payments.',
-        redirectUrl: `/hotels/${hotelSlug}`,
+        title: 'Sign Up to Book Listing',
+        description: 'Create an account or sign in to complete your reservation.',
+        redirectUrl: `/hotels/${slug}`,
       });
     } else {
-      router.push(`/hotels/${hotelSlug}`);
+      router.push(`/hotels/${slug}`);
     }
   };
 
-  const handleOnboardClick = (e: React.MouseEvent) => {
+  const handleInquirySubmit = (e: React.FormEvent, placeName: string) => {
     e.preventDefault();
-    if (!isAuthenticated) {
-      openAuthModal({
-        mode: 'signup',
-        role: 'hotel_manager',
-        title: 'Create Partner Account to Onboard',
-        description: 'Create a host or partner account first to list your hotel, vacation rental, or travel service in the Operate sector.',
-        redirectUrl: '/partner/onboard',
-      });
-    } else {
-      router.push('/partner/onboard');
-    }
+    alert(`Thank you for your inquiry about ${placeName}. Our team will respond shortly.`);
+    setSelectedAttraction(null);
   };
 
   return (
@@ -87,19 +116,23 @@ function DiscoverContent() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
         {/* =========================================================================
-            BEUI MINIMALIST DISCOVER HEADER & SEARCH BAR
-            ("Curated travel discovery" button removed completely as requested)
+            HEADER & SEARCH BAR
             ========================================================================= */}
         <div className="space-y-4 text-center max-w-3xl mx-auto pt-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#E8E2D8] text-[#AF8F64] text-[10px] font-bold uppercase tracking-[0.25em] shadow-2xs">
+            <Compass className="w-3.5 h-3.5 text-[#C5A880]" />
+            <span>Multi-Tenant Marketplace</span>
+          </div>
+
           <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#141413]">
-            Discover Exceptional Stays & Vacation Services
+            Discover Places, Stays & Experiences
           </h1>
 
           <p className="text-sm sm:text-base text-[#575650] leading-relaxed">
-            Explore verified onboarded hotels, luxury vacation homes, and travel services listed across cities in Nigeria and around the world.
+            Explore approved hotels, luxury vacation homes, transport fleets, curated tours, and public attractions across cities in Nigeria and worldwide.
           </p>
 
-          {/* Search Input Box */}
+          {/* Search Box */}
           <div className="relative max-w-2xl mx-auto pt-2">
             <div className="relative flex items-center bg-white rounded-full border border-[#E8E2D8] shadow-lg p-2 hover:border-[#C5A880] transition-colors">
               <div className="pl-4 text-[#85837B]">
@@ -109,7 +142,7 @@ function DiscoverContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by city, country, hotel, vacation home, or service..."
+                placeholder="Search by city, country, hotel, villa, transport, tour, or landmark..."
                 className="w-full px-3.5 py-2.5 text-sm bg-transparent placeholder-stone-400 focus:outline-none text-[#141413]"
               />
               {searchQuery && (
@@ -125,205 +158,235 @@ function DiscoverContent() {
         </div>
 
         {/* =========================================================================
-            CATEGORY PILL FILTER BAR
+            CATEGORY TABS
             ========================================================================= */}
         <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap pt-2">
-          <button
-            onClick={() => setCategoryFilter('all')}
-            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer ${
-              categoryFilter === 'all'
-                ? 'bg-[#141413] text-white shadow-md'
-                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
-            }`}
-          >
-            All Listed Discoveries ({filteredHotels.length})
-          </button>
-          <button
-            onClick={() => setCategoryFilter('hotels')}
-            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
-              categoryFilter === 'hotels'
-                ? 'bg-[#141413] text-white shadow-md'
-                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
-            <span>Hotels & Resorts ({filteredHotels.length})</span>
-          </button>
-          <button
-            onClick={() => setCategoryFilter('vacation_stays')}
-            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
-              categoryFilter === 'vacation_stays'
-                ? 'bg-[#141413] text-white shadow-md'
-                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
-            }`}
-          >
-            <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Vacation Spots & Villas</span>
-          </button>
-          <button
-            onClick={() => setCategoryFilter('cars')}
-            className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
-              categoryFilter === 'cars'
-                ? 'bg-[#141413] text-white shadow-md'
-                : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
-            }`}
-          >
-            <Car className="w-3.5 h-3.5 text-amber-600" />
-            <span>Car Hire & Services</span>
-          </button>
+          {[
+            { id: 'all', label: 'All Discoveries', icon: Compass },
+            { id: 'hotels', label: 'Hotels & Resorts', icon: Building2 },
+            { id: 'holiday_rentals', label: 'Holiday Homes & Villas', icon: Palmtree },
+            { id: 'transport', label: 'Transport & Chauffeur', icon: Car },
+            { id: 'tours_experiences', label: 'Tours & Experiences', icon: Sparkles },
+            { id: 'public_attractions', label: 'Public Attractions', icon: MapPin },
+          ].map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-[#141413] text-white shadow-md'
+                    : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
+                }`}
+              >
+                <IconComponent className={`w-3.5 h-3.5 ${isActive ? 'text-[#C5A880]' : 'text-stone-400'}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* =========================================================================
-            DYNAMIC DISCOVER LISTINGS & EMPTY STATE
-            Automatically updates when properties or services are onboarded in Operate
+            DYNAMIC LISTINGS GRID & PUBLIC ATTRACTIONS
             ========================================================================= */}
-        <div className="space-y-6 pt-2">
-          {filteredHotels.length === 0 ? (
-            /* Rich Informative Empty State when no properties/services have been onboarded */
-            <div className="p-8 sm:p-14 rounded-3xl bg-white border border-[#E8E2D8] text-center space-y-6 shadow-sm max-w-3xl mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8] flex items-center justify-center mx-auto text-[#C5A880] ring-8 ring-[#FAF8F5]">
-                <Building2 className="w-8 h-8" />
-              </div>
-
-              <div className="space-y-3">
-                <span className="text-[10px] uppercase font-bold tracking-[0.25em] text-[#AF8F64] px-3.5 py-1 rounded-full bg-[#FAF8F5] border border-[#E8E2D8]">
-                  Marketplace Ready
-                </span>
-                <h2 className="font-editorial text-3xl sm:text-4xl font-bold text-[#141413]">
-                  No properties have been listed yet
-                </h2>
-                <p className="text-sm text-[#575650] max-w-xl mx-auto leading-relaxed">
-                  The Discover section automatically updates whenever a partner lists a property or vacation service. From luxury hotels, boutique guesthouses, and scenic vacation spots across cities in Nigeria and around the world, to car hire and chauffeur services — everything and anything needed for a vacation can be listed in the Operate section.
-                </p>
-              </div>
-
-              {/* Feature Highlights Grid in Empty State */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
-                <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8]">
-                  <div className="text-xs font-bold text-[#141413] flex items-center gap-1.5 mb-1">
-                    <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
-                    <span>Hotels & Resorts</span>
-                  </div>
-                  <p className="text-[11px] text-[#575650] leading-snug">
-                    List independent hotels, boutique suites & island resorts.
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8]">
-                  <div className="text-xs font-bold text-[#141413] flex items-center gap-1.5 mb-1">
-                    <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Vacation Homes</span>
-                  </div>
-                  <p className="text-[11px] text-[#575650] leading-snug">
-                    List beach houses, private villas & luxury apartments globally.
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8]">
-                  <div className="text-xs font-bold text-[#141413] flex items-center gap-1.5 mb-1">
-                    <Car className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Car Hire & Rides</span>
-                  </div>
-                  <p className="text-[11px] text-[#575650] leading-snug">
-                    List executive airport transfers, chauffeur services & car rentals.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <button
-                  onClick={handleOnboardClick}
-                  className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md hover:scale-105 cursor-pointer"
-                >
-                  <span>Onboard an Hotel</span>
-                  <ArrowRight className="w-4 h-4 text-[#C5A880]" />
-                </button>
-              </div>
-            </div>
-          ) : (
+        <div className="space-y-12">
+          {/* Managed Listings Section */}
+          {activeTab !== 'public_attractions' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
                 <div>
                   <div className="text-xs uppercase font-bold tracking-widest text-[#C5A880]">
-                    Verified Listings
+                    Approved Managed Listings
                   </div>
                   <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
-                    Onboarded Properties & Services
+                    Hospitality & Service Providers
                   </h2>
                 </div>
                 <span className="text-xs text-[#85837B] font-semibold">
-                  {filteredHotels.length} {filteredHotels.length === 1 ? 'Listing' : 'Listings'} Available
+                  {filteredListings.length} Approved {filteredListings.length === 1 ? 'Listing' : 'Listings'}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredHotels.map((hotel) => (
-                  <div
-                    key={hotel.id}
-                    className="group bg-white rounded-3xl overflow-hidden border border-[#E8E2D8] hover:border-[#C5A880]/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Cover Photo */}
-                      <Link href={`/hotels/${hotel.slug}`} className="block relative aspect-[16/10] overflow-hidden bg-stone-100">
-                        <Image
-                          src={hotel.heroImage}
-                          alt={hotel.name}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 400px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-[#141413] shadow-xs">
-                          {hotel.luxuryTier || 'Verified Listing'}
-                        </div>
-                        <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-xs font-bold text-white font-mono">
-                          {hotel.currencySymbol || '₦'}{hotel.startingPrice.toLocaleString()} <span className="text-[10px] font-normal text-stone-300">/ rate</span>
-                        </div>
-                      </Link>
-
-                      {/* Content */}
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center gap-1.5 text-xs text-[#85837B]">
-                          <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
-                          <span>{hotel.location.city}, {hotel.location.country}</span>
-                        </div>
-
-                        <Link href={`/hotels/${hotel.slug}`} className="block">
-                          <h3 className="font-editorial text-xl font-bold text-[#141413] group-hover:text-[#AF8F64] transition-colors leading-snug">
-                            {hotel.name}
-                          </h3>
+              {filteredListings.length === 0 ? (
+                <div className="p-8 text-center bg-white rounded-3xl border border-[#E8E2D8] space-y-3">
+                  <Building2 className="w-8 h-8 text-stone-300 mx-auto" />
+                  <p className="text-sm text-[#575650]">No approved managed listings found for this category or search.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredListings.map((listing) => (
+                    <div
+                      key={listing.id}
+                      className="group bg-white rounded-3xl overflow-hidden border border-[#E8E2D8] hover:border-[#C5A880]/60 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Cover Photo */}
+                        <Link href={`/hotels/${listing.slug}`} className="block relative aspect-[16/10] overflow-hidden bg-stone-100">
+                          <Image
+                            src={listing.heroImage}
+                            alt={listing.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 400px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-[#141413] shadow-xs flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Approved Listing</span>
+                          </div>
+                          <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-xs font-bold text-white font-mono">
+                            {listing.currencySymbol || '$'}{listing.startingPrice.toLocaleString()} <span className="text-[10px] font-normal text-stone-300">/ starting</span>
+                          </div>
                         </Link>
 
-                        <p className="text-xs text-[#575650] line-clamp-2 leading-relaxed">
-                          {hotel.tagline || hotel.description}
-                        </p>
-
-                        <div className="pt-2 flex flex-wrap gap-1.5">
-                          {hotel.amenities.slice(0, 3).map((amenity, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E8E2D8] text-[#575650]"
-                            >
-                              {amenity}
+                        {/* Content */}
+                        <div className="p-6 space-y-3">
+                          <div className="flex items-center justify-between text-xs text-[#85837B]">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
+                              <span>{listing.location.city}, {listing.location.country}</span>
+                            </div>
+                            <span className="uppercase text-[10px] font-mono tracking-wider text-[#C5A880]">
+                              {listing.category?.replace('_', ' ') || 'Hotel'}
                             </span>
-                          ))}
+                          </div>
+
+                          <Link href={`/hotels/${listing.slug}`} className="block">
+                            <h3 className="font-editorial text-xl font-bold text-[#141413] group-hover:text-[#AF8F64] transition-colors leading-snug">
+                              {listing.name}
+                            </h3>
+                          </Link>
+
+                          <p className="text-xs text-[#575650] line-clamp-2 leading-relaxed">
+                            {listing.tagline || listing.description}
+                          </p>
+
+                          <div className="pt-2 flex flex-wrap gap-1.5">
+                            {listing.amenities.slice(0, 3).map((amenity, idx) => (
+                              <span
+                                key={idx}
+                                className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E8E2D8] text-[#575650]"
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Bottom Action Footer */}
+                      <div className="p-6 pt-0 border-t border-[#F0EAE1] flex items-center justify-between gap-3 mt-4">
+                        <Link
+                          href={`/hotels/${listing.slug}`}
+                          className="text-xs font-semibold text-[#575650] hover:text-[#141413]"
+                        >
+                          View Listing Page
+                        </Link>
+
+                        <button
+                          onClick={(e) => handleBookClick(e, listing.slug)}
+                          className="px-4 py-2 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                        >
+                          <span>Request / Book</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-[#C5A880]" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Public Attractions & Spaces Section (No Provider Onboarding Required) */}
+          {(activeTab === 'all' || activeTab === 'public_attractions') && (
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D8]">
+                <div>
+                  <div className="text-xs uppercase font-bold tracking-widest text-[#AF8F64] flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
+                    <span>Public Places & Unregistered Attractions</span>
+                  </div>
+                  <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#141413]">
+                    Curated Destinations & Public Spaces
+                  </h2>
+                </div>
+                <span className="text-xs text-[#85837B] font-semibold">
+                  {filteredAttractions.length} Curated Places
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                {filteredAttractions.map((place) => (
+                  <div
+                    key={place.id}
+                    className="bg-white rounded-3xl overflow-hidden border border-[#E8E2D8] hover:border-[#C5A880] hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row"
+                  >
+                    <div className="relative aspect-[16/10] md:w-2/5 overflow-hidden bg-stone-100 shrink-0">
+                      <Image
+                        src={place.heroImage}
+                        alt={place.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 300px"
+                        className="object-cover"
+                      />
                     </div>
 
-                    {/* Bottom Action Footer */}
-                    <div className="p-6 pt-0 border-t border-[#F0EAE1] flex items-center justify-between gap-3 mt-4">
-                      <Link
-                        href={`/hotels/${hotel.slug}`}
-                        className="text-xs font-semibold text-[#575650] hover:text-[#141413]"
-                      >
-                        View Details
-                      </Link>
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        {/* Verification Status Badges */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {place.verificationStatus === 'verified' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Verified Public Place</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold uppercase tracking-wider">
+                              <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Unverified Info</span>
+                            </span>
+                          )}
 
-                      <button
-                        onClick={(e) => handleBookHotelClick(e, hotel.slug)}
-                        className="px-4 py-2 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                      >
-                        <span>Reserve</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-[#C5A880]" />
-                      </button>
+                          <span className="text-[10px] text-stone-500 uppercase font-mono tracking-widest">
+                            {place.category}
+                          </span>
+                        </div>
+
+                        <h3 className="font-editorial text-xl font-bold text-[#141413]">
+                          {place.name}
+                        </h3>
+
+                        <p className="text-xs text-[#575650] line-clamp-2 leading-relaxed">
+                          {place.description}
+                        </p>
+
+                        <div className="text-xs text-[#85837B] flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
+                          <span>{place.location.address}, {place.location.city}</span>
+                        </div>
+
+                        {place.verificationSource && (
+                          <p className="text-[10px] text-stone-400 italic">
+                            Source: {place.verificationSource}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-[#F0EAE1] flex items-center justify-between gap-3">
+                        <span className="text-xs font-semibold text-[#AF8F64]">
+                          {place.visitorInfo.entryFee || 'Public Entry'}
+                        </span>
+
+                        <button
+                          onClick={() => setSelectedAttraction(place)}
+                          className="px-4 py-2 rounded-full bg-stone-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <span>Visitor Info & Inquiry</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-[#C5A880]" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -332,6 +395,80 @@ function DiscoverContent() {
           )}
         </div>
       </main>
+
+      {/* Visitor Info & Inquiry Modal for Public Attractions */}
+      {selectedAttraction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative border border-[#E8E2D8]">
+            <button
+              onClick={() => setSelectedAttraction(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-stone-100 text-stone-700 text-[10px] font-bold uppercase tracking-wider">
+                <span>{selectedAttraction.category}</span>
+                <span>•</span>
+                <span>{selectedAttraction.verificationStatus === 'verified' ? 'Verified Attraction' : 'Community Unverified'}</span>
+              </div>
+              <h3 className="font-editorial text-2xl font-bold text-[#141413]">
+                {selectedAttraction.name}
+              </h3>
+              <p className="text-xs text-[#575650] leading-relaxed">
+                {selectedAttraction.description}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8] space-y-2 text-xs text-[#141413]">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#C5A880]" />
+                <span><strong>Hours:</strong> {selectedAttraction.visitorInfo.openingHours || 'Daily Daylight Hours'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Ticket className="w-4 h-4 text-[#C5A880]" />
+                <span><strong>Entry:</strong> {selectedAttraction.visitorInfo.entryFee || 'Free Admission'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#C5A880]" />
+                <span><strong>Address:</strong> {selectedAttraction.location.address}, {selectedAttraction.location.city}</span>
+              </div>
+            </div>
+
+            {/* Submit Inquiry Form */}
+            <form onSubmit={(e) => handleInquirySubmit(e, selectedAttraction.name)} className="space-y-4 pt-2">
+              <h4 className="font-editorial text-sm font-bold text-[#141413]">
+                Send Inquiry to HotelStay Concierge
+              </h4>
+              <input
+                type="text"
+                required
+                placeholder="Your Full Name"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D8] text-xs focus:outline-none focus:border-[#C5A880]"
+              />
+              <input
+                type="email"
+                required
+                placeholder="Your Email Address"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D8] text-xs focus:outline-none focus:border-[#C5A880]"
+              />
+              <textarea
+                required
+                rows={3}
+                placeholder="Ask about opening times, tour guides, or custom arrangements..."
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E8E2D8] text-xs focus:outline-none focus:border-[#C5A880]"
+              />
+              <button
+                type="submit"
+                className="w-full py-3 rounded-full bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Submit Inquiry
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
