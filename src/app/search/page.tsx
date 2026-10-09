@@ -119,11 +119,6 @@ function DiscoverContent() {
             HEADER & SEARCH BAR
             ========================================================================= */}
         <div className="space-y-4 text-center max-w-3xl mx-auto pt-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#E8E2D8] text-[#AF8F64] text-[10px] font-bold uppercase tracking-[0.25em] shadow-2xs">
-            <Compass className="w-3.5 h-3.5 text-[#C5A880]" />
-            <span>Multi-Tenant Marketplace</span>
-          </div>
-
           <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#141413]">
             Discover Places, Stays & Experiences
           </h1>

@@ -69,11 +69,6 @@ function DMCContent() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#C5A880] text-xs font-semibold uppercase tracking-widest mb-6">
-            <Compass className="w-3.5 h-3.5" />
-            <span>Destination Management & Curated Journeys</span>
-          </div>
-
           <h1 className="font-editorial text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
             Bespoke Tours, Honeymoon Escapes & Landmark Events
           </h1>

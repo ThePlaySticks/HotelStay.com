@@ -5,15 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import {
-  Compass,
-  Building2,
-  ArrowRight,
-  Sparkles,
-  ShieldCheck,
-  Briefcase,
-  Layers,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 // ============================================================================
 // Curated Luxury Photography Collections for DISCOVER & OPERATE
@@ -336,12 +328,6 @@ export default function CinematicLandingPage() {
 
           {/* Content Overlay */}
           <div className="relative z-20 max-w-xl">
-            {/* Environment Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
-              <Compass className="w-3.5 h-3.5" />
-              <span>For Guests & Travelers</span>
-            </div>
-
             {/* Master Headline */}
             <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
               DISCOVER
@@ -351,39 +337,11 @@ export default function CinematicLandingPage() {
             <p className="mt-3 sm:mt-4 text-base sm:text-xl text-stone-200 font-light leading-relaxed">
               Exceptional places. Memorable stays & experiences.
             </p>
-            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1.5">
-              Explore verified hotels, luxury villas, chauffeur logistics & curated attractions.
-            </p>
 
             {/* Subtle Interactive Access Cue */}
             <div className="mt-6 sm:mt-8 flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-semibold text-stone-300 group-hover:text-white transition-colors">
               <span>Explore Marketplace</span>
               <ArrowRight className="w-4 h-4 text-[#C5A880] group-hover:translate-x-2 transition-transform duration-300" />
-            </div>
-
-            {/* Live Slide Indicator Dots */}
-            <div
-              className="mt-6 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {DISCOVER_IMAGES.map((_, dotIdx) => (
-                <button
-                  key={dotIdx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDiscoverIdx(dotIdx);
-                  }}
-                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
-                    dotIdx === discoverIdx
-                      ? 'w-8 bg-[#C5A880]'
-                      : 'w-2 bg-white/30 hover:bg-white/60'
-                  }`}
-                  aria-label={`Go to discover slide ${dotIdx + 1}`}
-                />
-              ))}
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono truncate max-w-[200px]">
-                {DISCOVER_IMAGES[discoverIdx].title}
-              </span>
             </div>
           </div>
         </section>
@@ -434,12 +392,6 @@ export default function CinematicLandingPage() {
 
           {/* Content Overlay */}
           <div className="relative z-20 max-w-xl">
-            {/* Environment Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#C5A880] text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>For Owners & Service Providers</span>
-            </div>
-
             {/* Master Headline */}
             <h2 className="font-editorial text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white uppercase leading-none group-hover:text-stone-100 transition-colors">
               OPERATE
@@ -449,58 +401,6 @@ export default function CinematicLandingPage() {
             <p className="mt-3 sm:mt-4 text-base sm:text-xl text-stone-200 font-light leading-relaxed">
               Multi-tenant provider platform & management ecosystem.
             </p>
-            <p className="text-xs sm:text-sm text-stone-400 font-light mt-1.5">
-              List hotels, villas, transport fleets or experiences. Guided onboarding & rate management.
-            </p>
-
-            {/* Interactive Access Cue & Action Buttons */}
-            <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => router.push('/partner')}
-                className="px-6 py-3 rounded-full bg-[#C5A880] hover:bg-[#b0926a] text-[#06080E] text-xs font-bold uppercase tracking-wider shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <span>Partner Portal</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => {
-                  if (isAuthenticated && isHotelAdmin) {
-                    router.push('/hotel-admin');
-                  } else {
-                    router.push('/partner/signup');
-                  }
-                }}
-                className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wider border border-white/20 backdrop-blur-md transition-colors cursor-pointer"
-              >
-                <span>{isAuthenticated ? 'Provider Dashboard' : 'Sign In / Register'}</span>
-              </button>
-            </div>
-
-            {/* Live Slide Indicator Dots */}
-            <div
-              className="mt-6 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {OPERATE_IMAGES.map((_, dotIdx) => (
-                <button
-                  key={dotIdx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOperateIdx(dotIdx);
-                  }}
-                  className={`h-1 transition-all duration-300 rounded-full cursor-pointer ${
-                    dotIdx === operateIdx
-                      ? 'w-8 bg-[#C5A880]'
-                      : 'w-2 bg-white/30 hover:bg-white/60'
-                  }`}
-                  aria-label={`Go to operate slide ${dotIdx + 1}`}
-                />
-              ))}
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest ml-2 font-mono truncate max-w-[200px]">
-                {OPERATE_IMAGES[operateIdx].title}
-              </span>
-            </div>
           </div>
         </section>
       </main>
