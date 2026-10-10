@@ -73,7 +73,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {/* Discreet Partner Entry Point */}
             <Link
-              href="/partner/onboard"
+              href={isAuthenticated && isHotelAdmin ? '/hotel-admin' : '/partner'}
               className="text-[11px] font-semibold tracking-wider text-[#575650] hover:text-[#141413] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-transparent hover:border-[#E8E2D8] hover:bg-white"
             >
               <Building2 className="w-3.5 h-3.5 text-[#C5A880]" />
@@ -239,14 +239,14 @@ export function Navbar() {
 
           <div className="pt-2 flex flex-col gap-2">
             <Link
-              href="/partner/onboard"
+              href={isAuthenticated && isHotelAdmin ? '/hotel-admin' : '/partner'}
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-2.5 rounded-xl bg-[#C5A880] text-[#141413] text-xs font-bold uppercase tracking-wider"
             >
               List Your Property
             </Link>
             <Link
-              href="/hotel-admin"
+              href={isAuthenticated && isHotelAdmin ? '/hotel-admin' : '/partner'}
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold"
             >

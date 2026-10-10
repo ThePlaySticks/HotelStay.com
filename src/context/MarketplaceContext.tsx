@@ -222,6 +222,15 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hotelstay_v2_hotels', JSON.stringify(updated));
       return updated;
     });
+    if (newHotel.managerId) {
+      addNotification({
+        userId: newHotel.managerId,
+        title: 'Property Listed & Domain Live',
+        message: `${newHotel.name} is now listed in HotelStay and ready for reservations.`,
+        type: 'partner_approval',
+        linkUrl: `/hotel/${newHotel.slug}`,
+      });
+    }
     showToast({
       title: 'Property Registered',
       description: `${newHotel.name} has been added to the system.`,
@@ -268,6 +277,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       return updated;
     });
 
+    // Notify Super Admin
     addNotification({
       userId: 'persona-super-admin',
       title: 'New Property Submission',
@@ -275,6 +285,17 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       type: 'partner_approval',
       linkUrl: '/super-admin/applications',
     });
+
+    // Notify submitting Partner
+    if (hotel.managerId) {
+      addNotification({
+        userId: hotel.managerId,
+        title: 'Property Submission Received',
+        message: `Your property submission for "${hotel.name}" has been received and is pending editorial review.`,
+        type: 'partner_approval',
+        linkUrl: '/hotel-admin',
+      });
+    }
 
     showToast({
       title: 'Submission Received',
@@ -301,6 +322,38 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     });
 
     const targetHotel = hotels.find((h) => h.id === hotelId);
+
+    // Notify the managing partner of the real status decision
+    if (targetHotel?.managerId) {
+      if (status === 'approved' || status === 'live' || status === 'active') {
+        addNotification({
+          userId: targetHotel.managerId,
+          title: 'Property Approved',
+          message: `Your property "${targetHotel.name}" has been approved and published to the HotelStay collection.`,
+          type: 'partner_approval',
+          linkUrl: '/hotel-admin',
+        });
+      } else if (status === 'rejected') {
+        addNotification({
+          userId: targetHotel.managerId,
+          title: 'Property Review Decision',
+          message: `Your submission for "${targetHotel.name}" was not approved at this time.`,
+          type: 'partner_approval',
+          linkUrl: '/partner/onboard',
+        });
+      } else if (status === 'changes_requested') {
+        addNotification({
+          userId: targetHotel.managerId,
+          title: 'Property Changes Requested',
+          message:
+            adminFeedbackNotes ||
+            `Changes requested for "${targetHotel.name}". Please update details and resubmit.`,
+          type: 'partner_approval',
+          linkUrl: '/partner/onboard',
+        });
+      }
+    }
+
     showToast({
       title: `Status: ${status.toUpperCase().replace('_', ' ')}`,
       description: `${targetHotel?.name || 'Property'} is now marked as ${status}.`,

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getSupabaseClient, mapSupabaseAuthError } from '@/lib/supabase';
+import { mapSupabaseAuthError } from '@/lib/supabase';
 import { ShieldCheck, Lock, Mail, Sparkles, ArrowRight, Building2 } from 'lucide-react';
 
 export default function SuperAdminLoginPage() {
@@ -24,18 +24,7 @@ export default function SuperAdminLoginPage() {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const client = getSupabaseClient();
-
-      if (client && password) {
-        const { data, error } = await client.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-
-        if (error) throw error;
-      }
-
-      // Context authentication fallback
+      // Authenticate via unified dual-mode auth
       await signIn(cleanEmail, password, 'super_admin');
       router.push('/super-admin');
     } catch (err: any) {

@@ -22,37 +22,52 @@ export function AuthModal() {
   const { showToast } = useMarketplace();
 
   const [mode, setMode] = useState<'signin' | 'signup'>(authModal.mode || 'signup');
-  const [role, setRole] = useState<'guest' | 'hotel_manager' | 'super_admin'>(authModal.role || 'guest');
+  const [role, setRole] = useState<'guest' | 'hotel_manager' | 'super_admin' | 'hotel_owner'>(authModal.role || 'guest');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   if (!authModal.isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    setFormError(null);
+
+    if (!email) {
+      setFormError('Please enter your email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters long.');
+      return;
+    }
 
     setLoading(true);
     try {
       if (mode === 'signup') {
-        await signUp({
+        const registered = await signUp({
           name: name || (email.split('@')[0]),
           email,
           password,
           role,
         });
+
         showToast({
           title: 'Account Created',
-          description: role === 'hotel_manager' ? 'Welcome Host! Let’s onboard your hotel.' : 'Welcome to HotelStay!',
+          description:
+            registered.role === 'hotel_manager' || registered.role === 'hotel_owner'
+              ? 'Partner account created! Let’s onboard your property.'
+              : 'Welcome to HotelStay!',
           type: 'success',
         });
       } else {
-        await signIn(email, password, role);
+        const signedIn = await signIn(email, password, role);
         showToast({
           title: 'Welcome Back',
-          description: `Signed in as ${email}`,
+          description: `Signed in as ${signedIn.name || email}`,
           type: 'success',
         });
       }
@@ -63,13 +78,17 @@ export function AuthModal() {
         authModal.onSuccessCallback();
       } else if (authModal.redirectUrl) {
         router.push(authModal.redirectUrl);
-      } else if (role === 'hotel_manager') {
-        router.push('/hotel-admin');
+      } else if (role === 'hotel_manager' || role === 'hotel_owner') {
+        router.push(mode === 'signup' ? '/partner/onboard' : '/hotel-admin');
+      } else {
+        router.push('/guest');
       }
-    } catch {
+    } catch (err: any) {
+      const msg = err.message || 'Authentication failed. Please verify your details and try again.';
+      setFormError(msg);
       showToast({
-        title: 'Authentication Error',
-        description: 'Unable to complete sign-in. Please try again.',
+        title: mode === 'signup' ? 'Registration Error' : 'Sign In Error',
+        description: msg,
         type: 'error',
       });
     } finally {
@@ -141,6 +160,12 @@ export function AuthModal() {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-4">
+          {formError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium leading-relaxed">
+              {formError}
+            </div>
+          )}
+
           {mode === 'signup' && (
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1.5">

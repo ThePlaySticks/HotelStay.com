@@ -18,7 +18,12 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. If Resend API Key is configured in env variables, send transactional email via Resend API
+    let providerStatus: { provider: string; delivered: boolean; limitation?: string } = {
+      provider: 'none',
+      delivered: false,
+    };
+
+    // 1. If Resend API Key is configured in env variables, attempt transactional email via Resend API
     if (RESEND_API_KEY) {
       try {
         const resendRes = await fetch('https://api.resend.com/emails', {
@@ -28,11 +33,11 @@ export async function POST(req: Request) {
             Authorization: `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({
-            from: 'HotelStay Partner Team <onboarding@hotelstay.com>',
+            from: 'HotelStay Partner Team <onboarding@resend.dev>',
             to: [cleanEmail],
             subject: 'Verify Your HotelStay Partner Account',
             html: `
-              <div font-family: sans-serif; padding: 24px; color: #141413; max-w: 600px; margin: 0 auto;>
+              <div style="font-family: sans-serif; padding: 24px; color: #141413; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #AF8F64; font-size: 24px;">Welcome to HotelStay Partner Ecosystem</h2>
                 <p>Hello ${name || 'Hotel Partner'},</p>
                 <p>To complete setting up your HotelStay partner account and onboard your property, please verify your email address by clicking the link below:</p>
@@ -45,16 +50,32 @@ export async function POST(req: Request) {
           }),
         });
 
+        const resData = await resendRes.json();
         if (resendRes.ok) {
-          return NextResponse.json({ success: true, provider: 'resend' });
+          return NextResponse.json({
+            success: true,
+            provider: 'resend',
+            delivered: true,
+            message: 'Verification email dispatched via Resend.',
+          });
+        } else {
+          providerStatus = {
+            provider: 'resend',
+            delivered: false,
+            limitation: resData.message || 'Custom domain hotelstay.com is unverified in Resend.',
+          };
         }
-      } catch (err) {
-        console.error('Resend dispatch failed:', err);
+      } catch (err: any) {
+        providerStatus = {
+          provider: 'resend',
+          delivered: false,
+          limitation: err.message,
+        };
       }
     }
 
-    // 2. If Brevo API Key is configured, send transactional email via Brevo API
-    if (BREVO_API_KEY) {
+    // 2. If Brevo API Key is configured, attempt transactional email via Brevo API
+    if (BREVO_API_KEY && !providerStatus.delivered) {
       try {
         const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
@@ -67,7 +88,7 @@ export async function POST(req: Request) {
             to: [{ email: cleanEmail, name: name || 'Hotel Partner' }],
             subject: 'Verify Your HotelStay Partner Account',
             htmlContent: `
-              <div font-family: sans-serif; padding: 24px; color: #141413; max-w: 600px; margin: 0 auto;>
+              <div style="font-family: sans-serif; padding: 24px; color: #141413; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #AF8F64; font-size: 24px;">Welcome to HotelStay Partner Ecosystem</h2>
                 <p>Hello ${name || 'Hotel Partner'},</p>
                 <p>To complete setting up your HotelStay partner account, please verify your email address by clicking the link below:</p>
@@ -79,34 +100,37 @@ export async function POST(req: Request) {
           }),
         });
 
+        const brevoData = await brevoRes.json();
         if (brevoRes.ok) {
-          return NextResponse.json({ success: true, provider: 'brevo' });
+          return NextResponse.json({
+            success: true,
+            provider: 'brevo',
+            delivered: true,
+            message: 'Verification email dispatched via Brevo.',
+          });
+        } else {
+          providerStatus = {
+            provider: 'brevo',
+            delivered: false,
+            limitation: brevoData.message || 'Brevo API requires IP authorization.',
+          };
         }
-      } catch (err) {
-        console.error('Brevo dispatch failed:', err);
+      } catch (err: any) {
+        // continue
       }
     }
 
-    // 3. Native Supabase Auth verification trigger fallback (or service role)
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      const { error } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: cleanEmail,
-        options: {
-          redirectTo: redirectUrl || 'http://localhost:3000/auth/callback',
-        },
-      } as any);
-
-      if (!error) {
-        return NextResponse.json({ success: true, provider: 'supabase-admin' });
-      }
-    }
-
+    // 3. Honest development response when external transactional email provider is unverified
     return NextResponse.json({
       success: true,
-      provider: 'supabase-default',
-      message: 'Verification request routed via Supabase Auth standard pipeline.',
+      provider: 'development_fallback',
+      delivered: false,
+      limitation:
+        providerStatus.limitation ||
+        'Transactional email provider domain verification is pending. External email delivery is disabled in local development.',
+      verificationUrl: redirectUrl || 'http://localhost:3000/auth/callback',
+      message:
+        'In local development, use the verification callback link directly to verify your account without requiring a paid custom domain.',
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });

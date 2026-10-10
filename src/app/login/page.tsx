@@ -35,63 +35,29 @@ function LoginContent() {
     setErrorMessage(null);
     setUnverifiedEmail(null);
 
-    const client = getSupabaseClient();
-
-    if (client) {
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (error) {
-        setStatus('error');
-        const friendlyMsg = mapSupabaseAuthError(error);
-        setErrorMessage(friendlyMsg);
-
-        if (
-          error.message?.toLowerCase().includes('email not confirmed') ||
-          error.message?.toLowerCase().includes('unverified')
-        ) {
-          setUnverifiedEmail(email.trim().toLowerCase());
-        }
-        return;
-      }
-
+    try {
+      const persona = await signIn(email, password);
       setStatus('success');
-      // If user profile has role
-      const userMeta = data?.user?.user_metadata;
-      const role = userMeta?.role || 'guest';
-
       setTimeout(() => {
         if (redirectParam) {
           router.push(redirectParam);
-        } else if (role === 'hotel_manager' || role === 'hotel_owner') {
+        } else if (persona.role === 'hotel_manager' || persona.role === 'hotel_owner') {
           router.push('/hotel-admin');
-        } else if (role === 'super_admin') {
+        } else if (persona.role === 'super_admin') {
           router.push('/super-admin');
         } else {
           router.push('/guest');
         }
       }, 500);
-    } else {
-      // Fallback auth when Supabase credentials are not yet entered in local .env
-      try {
-        const account = await signIn(email, password);
-        setStatus('success');
-        setTimeout(() => {
-          if (redirectParam) {
-            router.push(redirectParam);
-          } else if (account.role === 'hotel_manager') {
-            router.push('/hotel-admin');
-          } else if (account.role === 'super_admin') {
-            router.push('/super-admin');
-          } else {
-            router.push('/guest');
-          }
-        }, 500);
-      } catch (err: any) {
-        setStatus('error');
-        setErrorMessage(err.message || 'Unable to sign in. Please check credentials.');
+    } catch (err: any) {
+      setStatus('error');
+      const msg = err.message || 'Unable to sign in. Please verify your credentials.';
+      setErrorMessage(msg);
+      if (
+        msg.toLowerCase().includes('email not confirmed') ||
+        msg.toLowerCase().includes('unverified')
+      ) {
+        setUnverifiedEmail(email.trim().toLowerCase());
       }
     }
   };

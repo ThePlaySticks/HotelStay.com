@@ -5,57 +5,29 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { SignUpForm, SignUpValues } from '@/components/motion/signup-form';
-import { getSupabaseClient, mapSupabaseAuthError, isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [formError, setFormError] = useState<string | undefined>(undefined);
 
   const handleSignUp = async (values: SignUpValues) => {
     setFormError(undefined);
 
-    const client = getSupabaseClient();
-    const cleanEmail = values.email.trim().toLowerCase();
-    const cleanName = values.name.trim();
-
-    if (!client) {
-      // In development mode when Supabase is not yet configured with real API keys
-      setFormError(
-        'Supabase is not configured yet. Please provide NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.'
-      );
-      throw new Error('Supabase not configured');
-    }
-
-    const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback`
-      : undefined;
-
-    const { data, error } = await client.auth.signUp({
-      email: cleanEmail,
-      password: values.password,
-      options: {
-        data: {
-          full_name: cleanName,
-        },
-        emailRedirectTo: redirectUrl,
-      },
-    });
-
-    if (error) {
-      const friendlyMessage = mapSupabaseAuthError(error);
-      setFormError(friendlyMessage);
-      throw error;
-    }
-
-    // If user created and email confirmation is needed
-    if (data?.user && !data.session) {
-      router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`);
-    } else if (data?.session) {
-      // Auto-confirmed / direct session
+    try {
+      await signUp({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: 'guest',
+      });
       router.push('/guest');
-    } else {
-      router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`);
+    } catch (err: any) {
+      const friendlyMessage = err.message || 'Registration failed. Please check your details.';
+      setFormError(friendlyMessage);
+      throw err;
     }
   };
 

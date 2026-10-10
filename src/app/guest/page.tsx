@@ -35,9 +35,11 @@ function GuestDashboardContent() {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [cancelModalReservationId, setCancelModalReservationId] = useState<string | null>(null);
 
-  // Filter reservations for current guest
+  // Filter reservations for current guest strictly by real user email or id
   const myReservations = reservations.filter(
-    (r) => r.guestEmail === currentPersona.email || r.guestName.toLowerCase().includes('julian')
+    (r) =>
+      (currentPersona?.email && r.guestEmail?.toLowerCase() === currentPersona.email.toLowerCase()) ||
+      (currentPersona?.id && r.guestId === currentPersona.id)
   );
 
   const upcomingBookings = myReservations.filter(

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/common/Navbar';
+import { PartnerNavbar } from '@/components/common/PartnerNavbar';
 import { Footer } from '@/components/common/Footer';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -58,7 +58,7 @@ export default function PartnerLandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5]">
-      <Navbar />
+      <PartnerNavbar />
 
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 bg-[#06080E] text-white overflow-hidden">

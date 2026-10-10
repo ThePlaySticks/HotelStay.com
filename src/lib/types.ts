@@ -383,7 +383,7 @@ export interface NotificationItem {
   userId: string;
   title: string;
   message: string;
-  type: 'booking' | 'payment' | 'partner_approval' | 'system' | 'promotion';
+  type: 'booking' | 'payment' | 'partner_approval' | 'system' | 'promotion' | 'review';
   date: string;
   read: boolean;
   linkUrl?: string;
