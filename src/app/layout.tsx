@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${playfair.variable} ${jakarta.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#FAF8F5] text-[#141413] antialiased selection:bg-[#C5A880]/30">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#FAF8F5] text-[#141413] antialiased selection:bg-[#C5A880]/30">
         <AuthProvider>
           <MarketplaceProvider>
             {children}
