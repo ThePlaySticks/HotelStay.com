@@ -38,48 +38,12 @@ export function verifyPassword(password: string, hash?: string): boolean {
   return hashPassword(password) === hash;
 }
 
-// Default seeded accounts available across environments
+// Initial configured accounts available across environments
 const DEFAULT_SYSTEM_USERS: StoredUser[] = [
-  {
-    id: 'usr-guest-julian',
-    name: 'Julian Vance',
-    email: 'julian.vance@vanceholdings.co.uk',
-    passwordHash: hashPassword('HotelStay2026!'),
-    role: 'guest',
-    phone: '+44 7911 123456',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr-partner-camille',
-    name: 'Camille Laurent',
-    email: 'camille.laurent@azureriviera.com',
-    passwordHash: hashPassword('HotelStay2026!'),
-    role: 'hotel_manager',
-    hotelId: 'hotel-azure',
-    hotelName: 'The Azure Riviera Resort & Spa',
-    hotelSlug: 'the-azure-riviera',
-    phone: '+33 4 93 01 23 45',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr-partner-dimitris',
-    name: 'Dimitris Kostas',
-    email: 'dimitris@serenitahaven.gr',
-    passwordHash: hashPassword('HotelStay2026!'),
-    role: 'hotel_manager',
-    hotelId: 'hotel-serenita',
-    hotelName: 'Serenita Coastal Haven & Spa',
-    hotelSlug: 'serenita-coastal-haven',
-    phone: '+30 2286 071234',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
   {
     id: 'usr-super-admin',
     name: 'Platform Super Admin',
-    email: (process.env.ADMIN_INITIAL_EMAIL || 'admin@hotelstay.com').toLowerCase(),
+    email: (process.env.ADMIN_INITIAL_EMAIL || 'theplay.sticks@gmail.com').toLowerCase(),
     passwordHash: hashPassword(process.env.ADMIN_INITIAL_PASSWORD || 'HotelStaySuperAdmin12321'),
     role: 'super_admin',
     phone: '+1 800 555 0100',

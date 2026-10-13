@@ -65,10 +65,10 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   const [selectedExtras, setSelectedExtras] = useState<string[]>(['transfer']);
 
   // Payment
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 9821');
-  const [expiry, setExpiry] = useState('08/29');
-  const [cvv, setCvv] = useState('883');
-  const [cardHolder, setCardHolder] = useState('JULIAN VANCE');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
 
   // Completed Booking Details
   const [confirmedBookingId, setConfirmedBookingId] = useState<string>('');
@@ -499,6 +499,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                       type="text"
                       value={cardNumber}
                       onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="•••• •••• •••• 9821"
                       required
                       className="w-full bg-[#FAF8F5] border border-[#D5CCC0] rounded-xl px-3.5 py-2.5 text-xs text-[#141413] font-mono focus:outline-hidden"
                     />
@@ -509,6 +510,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                       type="text"
                       value={expiry}
                       onChange={(e) => setExpiry(e.target.value)}
+                      placeholder="MM/YY"
                       required
                       className="w-full bg-[#FAF8F5] border border-[#D5CCC0] rounded-xl px-3.5 py-2.5 text-xs text-[#141413] font-mono focus:outline-hidden"
                     />
@@ -520,6 +522,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                       maxLength={4}
                       value={cvv}
                       onChange={(e) => setCvv(e.target.value)}
+                      placeholder="•••"
                       required
                       className="w-full bg-[#FAF8F5] border border-[#D5CCC0] rounded-xl px-3.5 py-2.5 text-xs text-[#141413] font-mono focus:outline-hidden"
                     />
@@ -530,6 +533,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                       type="text"
                       value={cardHolder}
                       onChange={(e) => setCardHolder(e.target.value)}
+                      placeholder="Cardholder Full Name"
                       required
                       className="w-full bg-[#FAF8F5] border border-[#D5CCC0] rounded-xl px-3.5 py-2.5 text-xs text-[#141413] focus:outline-hidden"
                     />

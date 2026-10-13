@@ -147,7 +147,7 @@ export default function SuperAdminSettingsPage() {
       {/* Page Header */}
       <div className="pb-6 border-b border-slate-800">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
             Security & Identity
           </span>
         </div>
@@ -162,7 +162,7 @@ export default function SuperAdminSettingsPage() {
       {/* Current Account Info Card */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 space-y-4">
         <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-full bg-amber-400/15 text-amber-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center">
             <UserCog className="w-5 h-5" />
           </div>
           <div>

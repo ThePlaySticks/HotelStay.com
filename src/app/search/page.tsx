@@ -242,7 +242,7 @@ function DiscoverContent() {
                               <MapPin className="w-3.5 h-3.5 text-[#C5A880]" />
                               <span>{listing.location.city}, {listing.location.country}</span>
                             </div>
-                            <span className="uppercase text-[10px] font-mono tracking-wider text-[#C5A880]">
+                            <span className="uppercase text-[10px] font-semibold tracking-wider text-[#C5A880]">
                               {listing.category?.replace('_', ' ') || 'Hotel'}
                             </span>
                           </div>
@@ -344,7 +344,7 @@ function DiscoverContent() {
                             </span>
                           )}
 
-                          <span className="text-[10px] text-stone-500 uppercase font-mono tracking-widest">
+                          <span className="text-[10px] text-stone-500 uppercase font-semibold tracking-wider">
                             {place.category}
                           </span>
                         </div>

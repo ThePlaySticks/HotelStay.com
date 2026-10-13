@@ -223,7 +223,7 @@ export default function HotelAdminDashboard() {
               <BedDouble className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold font-mono text-[#141413]">
+          <div className="text-3xl font-bold text-[#141413] tracking-tight">
             {occupancyRate}%
           </div>
           <div className="text-xs text-[#85837B] mt-2 flex items-center gap-1.5">
@@ -241,7 +241,7 @@ export default function HotelAdminDashboard() {
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold font-mono text-[#141413]">
+          <div className="text-3xl font-bold text-[#141413] tracking-tight">
             ${totalRevenue.toLocaleString()}
           </div>
           <div className="text-xs text-[#85837B] mt-2">
@@ -257,7 +257,7 @@ export default function HotelAdminDashboard() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold font-mono text-[#141413]">
+          <div className="text-3xl font-bold text-[#141413] tracking-tight">
             ${currentHotel.startingPrice}
           </div>
           <div className="text-xs text-[#85837B] mt-2">
@@ -273,7 +273,7 @@ export default function HotelAdminDashboard() {
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold font-mono text-[#141413]">
+          <div className="text-3xl font-bold text-[#141413] tracking-tight">
             {currentHotel.roomTypes.length}
           </div>
           <div className="text-xs text-[#85837B] mt-2">

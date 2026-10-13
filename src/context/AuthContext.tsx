@@ -18,42 +18,7 @@ export interface Persona {
   createdAt?: string;
 }
 
-export const PERSONAS: Persona[] = [
-  {
-    id: 'persona-guest',
-    name: 'Julian Vance',
-    email: 'julian.vance@vanceholdings.co.uk',
-    role: 'guest',
-    phone: '+44 7911 123456',
-  },
-  {
-    id: 'persona-azure-admin',
-    name: 'Camille Laurent',
-    email: 'camille.laurent@azureriviera.com',
-    role: 'hotel_manager',
-    hotelId: 'hotel-azure',
-    hotelName: 'The Azure Riviera Resort & Spa',
-    hotelSlug: 'the-azure-riviera',
-    phone: '+33 4 93 01 23 45',
-  },
-  {
-    id: 'persona-serenita-admin',
-    name: 'Dimitris Kostas',
-    email: 'dimitris@serenitahaven.gr',
-    role: 'hotel_manager',
-    hotelId: 'hotel-serenita',
-    hotelName: 'Serenita Coastal Haven & Spa',
-    hotelSlug: 'serenita-coastal-haven',
-    phone: '+30 2286 071234',
-  },
-  {
-    id: 'persona-super-admin',
-    name: 'Platform Super Admin',
-    email: 'admin@hotelstay.com',
-    role: 'super_admin',
-    phone: '+1 800 555 0100',
-  },
-];
+export const PERSONAS: Persona[] = [];
 
 export interface AuthModalState {
   isOpen: boolean;
@@ -107,7 +72,12 @@ interface AuthContextType {
   checkAccountExists: (email: string) => boolean;
 }
 
-const DEFAULT_GUEST: Persona = PERSONAS[0];
+const DEFAULT_GUEST: Persona = {
+  id: 'guest-anonymous',
+  name: 'Guest Traveler',
+  email: '',
+  role: 'guest',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

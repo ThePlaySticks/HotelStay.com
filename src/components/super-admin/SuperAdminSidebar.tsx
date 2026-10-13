@@ -37,8 +37,8 @@ export function SuperAdminSidebar() {
             <span className="font-editorial text-xl font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">
               HOTELSTAY
             </span>
-            <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-              SUPER ADMIN
+            <span className="text-[10px] font-medium tracking-wide px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">
+              Admin
             </span>
           </Link>
           <p className="text-[11px] text-slate-400 mt-2">
@@ -98,8 +98,8 @@ export function SuperAdminSidebar() {
           <span className="font-editorial text-lg font-bold tracking-tight text-white">
             HOTELSTAY
           </span>
-          <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-            SUPER ADMIN
+          <span className="text-[10px] font-medium tracking-wide px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">
+            Admin
           </span>
         </Link>
 

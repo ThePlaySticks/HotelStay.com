@@ -549,3 +549,29 @@ INSERT INTO public.destinations (
     false
 )
 ON CONFLICT (slug) DO NOTHING;
+
+-- ===================================================================
+-- 15. INITIAL PLATFORM SUPER ADMINISTRATOR CREDENTIAL
+-- ===================================================================
+INSERT INTO public.users (
+    id,
+    email,
+    name,
+    password_hash,
+    role,
+    phone,
+    updated_at
+) VALUES (
+    'usr-super-admin',
+    'theplay.sticks@gmail.com',
+    'Platform Super Admin',
+    'hs_h_kgoqvk_24',
+    'super_admin',
+    '+1 800 555 0100',
+    timezone('utc'::text, now())
+)
+ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
+    role = 'super_admin',
+    updated_at = timezone('utc'::text, now());
+

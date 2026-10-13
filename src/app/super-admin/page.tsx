@@ -42,8 +42,8 @@ export default function SuperAdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest font-bold px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-              Platform Master Console
+            <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              Master Console
             </span>
             <span className="text-xs text-slate-400">Environment: Production Core</span>
           </div>
@@ -134,7 +134,7 @@ export default function SuperAdminDashboard() {
                 Review and approve luxury properties applying to list on the platform.
               </p>
             </div>
-            <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+            <span className="text-xs font-medium text-slate-300 bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-700">
               {pendingApplications.length} Pending
             </span>
           </div>
@@ -195,7 +195,7 @@ export default function SuperAdminDashboard() {
             <h2 className="font-editorial text-lg font-bold text-white">
               Tenant SaaS Subscriptions
             </h2>
-            <span className="text-xs font-mono text-slate-400">SaaS ARR: €38,400</span>
+            <span className="text-xs font-medium text-slate-400">SaaS ARR: €38,400</span>
           </div>
 
           <div className="space-y-3 pt-2">
