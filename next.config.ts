@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   compress: true,
+  poweredByHeader: false,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'motion', '@supabase/supabase-js'],
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -14,6 +18,24 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: '/:all*(svg|jpg|jpeg|png|webp|ico|woff|woff2)',
         headers: [
@@ -29,6 +51,19 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-store, max-age=0',
+          },
+        ],
+      },
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
         ],
       },
