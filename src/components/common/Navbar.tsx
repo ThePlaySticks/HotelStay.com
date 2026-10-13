@@ -117,7 +117,7 @@ export function Navbar() {
           </nav>
 
           {/* Right Utilities (Single-line actions, never wraps) */}
-          <div className="hidden md:flex items-center gap-3 xl:gap-4 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-4 flex-shrink-0">
             {/* List your property (Partner onboarding link) */}
             <Link
               href={isAuthenticated && isHotelAdmin ? '/hotel-admin' : '/partner'}
