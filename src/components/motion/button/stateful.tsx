@@ -104,7 +104,7 @@ function TextSlot({
     const nextWidth = measureRef.current?.offsetWidth;
     if (!nextWidth) return;
     setWidth((current) => (current === nextWidth ? current : nextWidth));
-  });
+  }, [label, reduce]);
 
   return (
     <motion.span

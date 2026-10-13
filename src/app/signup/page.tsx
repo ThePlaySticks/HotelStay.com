@@ -10,7 +10,7 @@ import { Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, sendOtp } = useAuth();
   const [formError, setFormError] = useState<string | undefined>(undefined);
 
   const handleSignUp = async (values: SignUpValues) => {
@@ -23,7 +23,18 @@ export default function SignUpPage() {
         password: values.password,
         role: 'guest',
       });
-      router.push('/guest');
+
+      const otpRes = await sendOtp({
+        email: values.email,
+        purpose: 'verify_email',
+        name: values.name,
+        role: 'guest',
+      });
+
+      const devParam = otpRes.devCode ? `&devCode=${encodeURIComponent(otpRes.devCode)}` : '';
+      router.push(
+        `/auth/verify-email?email=${encodeURIComponent(values.email.trim().toLowerCase())}${devParam}`
+      );
     } catch (err: any) {
       const friendlyMessage = err.message || 'Registration failed. Please check your details.';
       setFormError(friendlyMessage);

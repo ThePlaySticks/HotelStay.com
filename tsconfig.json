@@ -30,14 +30,18 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts",
-    "**/*.mts",
+    "next.config.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    ".next/dev"
+    ".next",
+    "impeccable skill",
+    "Taste skill",
+    "Kiyowasi skill",
+    "skills"
   ]
 }

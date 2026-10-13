@@ -28,7 +28,7 @@ export default function SuperAdminLoginPage() {
       await signIn(cleanEmail, password, 'super_admin');
       router.push('/super-admin');
     } catch (err: any) {
-      const friendly = mapSupabaseAuthError(err);
+      const friendly = err.message || mapSupabaseAuthError(err);
       setErrorMsg(friendly);
     } finally {
       setLoading(false);

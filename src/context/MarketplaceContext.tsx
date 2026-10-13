@@ -32,6 +32,7 @@ import {
   INITIAL_FLIGHTS,
   INITIAL_NOTIFICATIONS,
 } from '@/lib/mockData';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export interface SearchFilters {
   destination: string;
@@ -111,6 +112,14 @@ const defaultFilters: SearchFilters = {
 
 const MarketplaceContext = createContext<MarketplaceContextType | undefined>(undefined);
 
+function generateUniqueToastId(): string {
+  return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+}
+
+function generateReservationReference(): string {
+  return 'HS-' + Math.floor(10000 + Math.random() * 90000);
+}
+
 export function MarketplaceProvider({ children }: { children: React.ReactNode }) {
   const [destinations, setDestinations] = useState<Destination[]>(INITIAL_DESTINATIONS);
   const [hotels, setHotels] = useState<Hotel[]>(INITIAL_APPROVED_LISTINGS);
@@ -129,15 +138,16 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {
-    try {
-      const savedHotels = localStorage.getItem('hotelstay_v2_hotels');
-      if (savedHotels) {
-        const parsed = JSON.parse(savedHotels);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const customItems = parsed.filter((h: Hotel) => h && !INITIAL_APPROVED_LISTINGS.some((init) => init.id === h.id));
-          setHotels([...INITIAL_APPROVED_LISTINGS, ...customItems]);
+    const timer = setTimeout(() => {
+      try {
+        const savedHotels = localStorage.getItem('hotelstay_v2_hotels');
+        if (savedHotels) {
+          const parsed = JSON.parse(savedHotels);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const customItems = parsed.filter((h: Hotel) => h && !INITIAL_APPROVED_LISTINGS.some((init) => init.id === h.id));
+            setHotels([...INITIAL_APPROVED_LISTINGS, ...customItems]);
+          }
         }
-      }
 
       const savedPublicPlaces = localStorage.getItem('hotelstay_v2_public_places');
       if (savedPublicPlaces) {
@@ -170,6 +180,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     } catch {
       // ignore
     }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Approved managed listings MUST NOT appear publicly before approval and publication
@@ -302,6 +314,28 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       description: `${hotel.name} submitted for HotelStay administrative review.`,
       type: 'success',
     });
+
+    // Background sync to Supabase
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('hotels')
+        .upsert({
+          id: submittedHotel.id,
+          name: submittedHotel.name,
+          slug: submittedHotel.slug,
+          city: submittedHotel.location.city,
+          country: submittedHotel.location.country,
+          address: submittedHotel.location.address,
+          status: 'pending_review',
+        })
+        .then(
+          ({ error }) => {
+            if (error) console.warn('[HotelStay Supabase] Background hotel sync notice:', error.message);
+          },
+          () => {}
+        );
+    }
   };
 
   const updateHotelStatus = (hotelId: string, status: HotelApprovalStatus, adminFeedbackNotes?: string) => {
@@ -320,6 +354,21 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hotelstay_v2_hotels', JSON.stringify(updated));
       return updated;
     });
+
+    // Background sync to Supabase
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('hotels')
+        .update({ status, admin_notes: adminFeedbackNotes })
+        .eq('id', hotelId)
+        .then(
+          ({ error }) => {
+            if (error) console.warn('[HotelStay Supabase] Background hotel status sync notice:', error.message);
+          },
+          () => {}
+        );
+    }
 
     const targetHotel = hotels.find((h) => h.id === hotelId);
 
@@ -398,7 +447,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const isWishlisted = (hotelId: string) => wishlist.includes(hotelId);
 
   const showToast = ({ title, description, type }: Omit<ToastMessage, 'id'>) => {
-    const id = Math.random().toString(36).substring(2, 9);
+    const id = generateUniqueToastId();
     setToasts((prev) => [...prev, { id, title, description, type }]);
     setTimeout(() => {
       removeToast(id);
@@ -410,7 +459,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const createReservation = (newReservationData: Omit<Reservation, 'id' | 'createdAt'>): Reservation => {
-    const randomCode = 'HS-' + Math.floor(10000 + Math.random() * 90000);
+    const randomCode = generateReservationReference();
     const newReservation: Reservation = {
       ...newReservationData,
       id: randomCode,
@@ -437,6 +486,34 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       type: 'success',
     });
 
+    // Background asynchronous sync to Supabase (non-blocking)
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('reservations')
+        .insert({
+          id: newReservation.id,
+          hotel_id: newReservation.hotelId,
+          room_type_id: newReservation.roomTypeId,
+          guest_id: newReservation.guestId,
+          guest_name: newReservation.guestName,
+          guest_email: newReservation.guestEmail,
+          guest_phone: newReservation.guestPhone,
+          check_in_date: newReservation.checkInDate,
+          check_out_date: newReservation.checkOutDate,
+          nights_count: newReservation.nightsCount,
+          total_amount: newReservation.totalAmount,
+          status: newReservation.status,
+          payment_status: newReservation.paymentStatus,
+        })
+        .then(
+          ({ error }) => {
+            if (error) console.warn('[HotelStay Supabase] Background reservation write notice:', error.message);
+          },
+          () => {}
+        );
+    }
+
     return newReservation;
   };
 
@@ -446,6 +523,22 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hotelstay_v2_reservations', JSON.stringify(updated));
       return updated;
     });
+
+    // Background sync to Supabase
+    const client = getSupabaseClient();
+    if (client) {
+      client
+        .from('reservations')
+        .update({ status })
+        .eq('id', reservationId)
+        .then(
+          ({ error }) => {
+            if (error) console.warn('[HotelStay Supabase] Reservation status sync notice:', error.message);
+          },
+          () => {}
+        );
+    }
+
     showToast({
       title: 'Status Updated',
       description: `Reservation ${reservationId} is now marked as ${status.replace('_', ' ')}.`,

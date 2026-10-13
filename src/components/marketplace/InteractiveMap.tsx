@@ -20,11 +20,13 @@ export function InteractiveMap({ hotels, selectedHotelId, highlightedHotelId, on
   const [zoomLevel, setZoomLevel] = useState(1);
 
   useEffect(() => {
-    if (highlightedHotelId) {
+    if (highlightedHotelId && highlightedHotelId !== activeHotel?.id) {
       const found = hotels.find((h) => h.id === highlightedHotelId);
-      if (found) setActiveHotel(found);
+      if (found) {
+        requestAnimationFrame(() => setActiveHotel(found));
+      }
     }
-  }, [highlightedHotelId, hotels]);
+  }, [highlightedHotelId, hotels, activeHotel?.id]);
 
   // Approximate relative coordinates on an artistic Mediterranean/European/African travel canvas
   const hotelCoordinates: Record<string, { top: string; left: string }> = {

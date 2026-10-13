@@ -39,29 +39,13 @@ export default function SuperAdminSettingsPage() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailResult, setEmailResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Hydrate admin details from Supabase session or context
+  // Hydrate admin details from NextAuth session / currentUser
   useEffect(() => {
-    const loadAdmin = async () => {
-      const client = getSupabaseClient();
-      if (client) {
-        const { data } = await client.auth.getUser();
-        if (data?.user) {
-          setAdminEmail(data.user.email || '');
-          setAdminId(data.user.id);
-          setAdminName(
-            data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Admin'
-          );
-          return;
-        }
-      }
-      // Fallback to AuthContext
-      if (currentUser) {
-        setAdminEmail(currentUser.email || '');
-        setAdminId(currentUser.id || '');
-        setAdminName(currentUser.name || 'Admin');
-      }
-    };
-    loadAdmin();
+    if (currentUser) {
+      setAdminEmail(currentUser.email || '');
+      setAdminId(currentUser.id || '');
+      setAdminName(currentUser.name || 'Admin');
+    }
   }, [currentUser]);
 
   // ---------------------------------------------------------------

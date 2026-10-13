@@ -13,10 +13,33 @@ export const isSupabaseConfigured = Boolean(
   !SUPABASE_URL.includes('placeholder')
 );
 
+// Circuit-breaker state to prevent 30-second hanging when Supabase DNS or network fails
+let isSupabaseOffline = false;
+let lastOfflineCheck = 0;
+const OFFLINE_RETRY_INTERVAL_MS = 60000; // Check again after 60s
+
+export function markSupabaseOffline(): void {
+  isSupabaseOffline = true;
+  lastOfflineCheck = Date.now();
+}
+
+export function isSupabaseAvailable(): boolean {
+  if (!isSupabaseConfigured) return false;
+  if (isSupabaseOffline) {
+    if (Date.now() - lastOfflineCheck > OFFLINE_RETRY_INTERVAL_MS) {
+      // Allow retry
+      isSupabaseOffline = false;
+      return true;
+    }
+    return false;
+  }
+  return true;
+}
+
 let supabaseInstance: SupabaseClient | null = null;
 
 export const getSupabaseClient = (): SupabaseClient | null => {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseAvailable()) {
     return null;
   }
   if (!supabaseInstance) {
@@ -30,6 +53,34 @@ export const getSupabaseClient = (): SupabaseClient | null => {
   }
   return supabaseInstance;
 };
+
+/**
+ * Executes a Supabase promise with a strict timeout (default 1500ms)
+ * to prevent long connection hangs if host is down or unresolvable.
+ */
+export async function withSupabaseTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 1500
+): Promise<T> {
+  let timeoutId: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      markSupabaseOffline();
+      reject(new Error(`Supabase request timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } catch (err: any) {
+    if (isNetworkOrReachabilityError(err)) {
+      markSupabaseOffline();
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export const supabase = isSupabaseConfigured ? getSupabaseClient() : null;
 

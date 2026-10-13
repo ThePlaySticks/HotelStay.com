@@ -13,6 +13,7 @@ export default function ForgotPasswordPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,27 +22,30 @@ export default function ForgotPasswordPage() {
     setStatus('loading');
     setErrorMessage(null);
 
-    const client = getSupabaseClient();
-    if (!client) {
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          purpose: 'reset_password',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setStatus('error');
+        setErrorMessage(data.error || 'Failed to dispatch password reset code.');
+      } else {
+        setStatus('success');
+        setSubmittedEmail(email.trim().toLowerCase());
+        if (data.devCode) {
+          setDevCode(data.devCode);
+        }
+      }
+    } catch (err: any) {
       setStatus('error');
-      setErrorMessage('Supabase is not configured yet.');
-      return;
-    }
-
-    const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/reset-password`
-      : undefined;
-
-    const { error } = await client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: redirectUrl,
-    });
-
-    if (error) {
-      setStatus('error');
-      setErrorMessage(mapSupabaseAuthError(error));
-    } else {
-      setStatus('success');
-      setSubmittedEmail(email.trim().toLowerCase());
+      setErrorMessage(err.message || 'Unable to connect to service.');
     }
   };
 
@@ -76,12 +80,26 @@ export default function ForgotPasswordPage() {
               Password Reset Sent
             </h1>
             <p className="text-xs text-stone-500 leading-relaxed">
-              We have sent a password reset link to <span className="font-semibold text-[#141413]">{submittedEmail}</span>. Please check your inbox.
+              We have generated a password reset code for <span className="font-semibold text-[#141413]">{submittedEmail}</span>.
             </p>
-            <div className="pt-3">
+
+            {devCode && (
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-left">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-700">One-Time Reset Code</span>
+                <span className="font-mono text-base font-bold tracking-widest">{devCode}</span>
+              </div>
+            )}
+
+            <div className="pt-2 flex flex-col gap-2.5">
+              <Link
+                href={`/auth/reset-password?email=${encodeURIComponent(submittedEmail)}${devCode ? `&code=${encodeURIComponent(devCode)}` : ''}`}
+                className="w-full py-3 px-4 rounded-2xl bg-[#141413] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+              >
+                Enter Code & Set New Password
+              </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 text-xs text-[#141413] hover:text-[#C5A880] font-bold underline"
+                className="inline-flex items-center justify-center gap-1.5 text-xs text-stone-500 hover:text-[#141413] font-medium underline"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Return to Sign In</span>

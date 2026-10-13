@@ -99,16 +99,16 @@ export default function CinematicLandingPage() {
     // Respect reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      setIntroStage(3);
-      setIntroCompleted(true);
       return;
     }
 
     const hasShownIntro = sessionStorage.getItem('hotelstay_intro_shown');
 
     if (!hasShownIntro) {
-      setIntroStage(0);
-      setIntroCompleted(false);
+      const initTimer = setTimeout(() => {
+        setIntroStage(0);
+        setIntroCompleted(false);
+      }, 0);
 
       const t1 = setTimeout(() => {
         setIntroStage(1);

@@ -155,7 +155,7 @@ function DiscoverContent() {
         {/* =========================================================================
             CATEGORY TABS
             ========================================================================= */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap pt-2">
+        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap pt-2 no-scrollbar">
           {[
             { id: 'all', label: 'All Discoveries', icon: Compass },
             { id: 'hotels', label: 'Hotels & Resorts', icon: Building2 },
@@ -170,7 +170,7 @@ function DiscoverContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-4 py-2.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                   isActive
                     ? 'bg-[#141413] text-white shadow-md'
                     : 'bg-white text-stone-600 border border-[#E8E2D8] hover:border-stone-400'
@@ -394,7 +394,7 @@ function DiscoverContent() {
       {/* Visitor Info & Inquiry Modal for Public Attractions */}
       {selectedAttraction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative border border-[#E8E2D8]">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl relative border border-[#E8E2D8]">
             <button
               onClick={() => setSelectedAttraction(null)}
               className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm cursor-pointer"

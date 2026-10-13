@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { NextAuthProvider } from '@/components/providers/NextAuthProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { MarketplaceProvider } from '@/context/MarketplaceContext';
 import { AuthModal } from '@/components/common/AuthModal';
@@ -31,13 +32,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${jakarta.variable} h-full`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#FAF8F5] text-[#141413] antialiased selection:bg-[#C5A880]/30">
-        <AuthProvider>
-          <MarketplaceProvider>
-            {children}
-            <AuthModal />
-            <ToastContainer />
-          </MarketplaceProvider>
-        </AuthProvider>
+        <NextAuthProvider>
+          <AuthProvider>
+            <MarketplaceProvider>
+              {children}
+              <AuthModal />
+              <ToastContainer />
+            </MarketplaceProvider>
+          </AuthProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

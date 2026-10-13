@@ -4,10 +4,9 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, Sparkles, ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Sparkles, ShieldCheck, KeyRound, CheckCircle2 } from 'lucide-react';
 import { StatefulButton } from '@/components/motion/button';
 import { Input } from '@/components/motion/input';
-import { getSupabaseClient, mapSupabaseAuthError } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 function LoginContent() {
@@ -16,82 +15,97 @@ function LoginContent() {
   const redirectParam = searchParams.get('redirect') || searchParams.get('next') || '';
   const emailParam = searchParams.get('email') || '';
 
-  const { signIn } = useAuth();
+  const { signIn, signInWithOtp, sendOtp } = useAuth();
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password');
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
   const [revealPassword, setRevealPassword] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [isResending, setIsResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
+  const handleSendOtp = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!email) {
+      setErrorMessage('Please enter your email address to receive a one-time code.');
+      return;
+    }
 
     setStatus('loading');
     setErrorMessage(null);
-    setUnverifiedEmail(null);
 
     try {
-      const persona = await signIn(email, password);
-      setStatus('success');
-      setTimeout(() => {
-        if (redirectParam) {
-          router.push(redirectParam);
-        } else if (persona.role === 'hotel_manager' || persona.role === 'hotel_owner') {
-          router.push('/hotel-admin');
-        } else if (persona.role === 'super_admin') {
-          router.push('/super-admin');
-        } else {
-          router.push('/guest');
-        }
-      }, 500);
+      const res = await sendOtp({ email, purpose: 'login' });
+      setOtpSent(true);
+      setStatus('idle');
+      if (res.devCode) {
+        setDevOtpCode(res.devCode);
+        setOtpCode(res.devCode);
+      }
     } catch (err: any) {
       setStatus('error');
-      const msg = err.message || 'Unable to sign in. Please verify your credentials.';
-      setErrorMessage(msg);
-      if (
-        msg.toLowerCase().includes('email not confirmed') ||
-        msg.toLowerCase().includes('unverified')
-      ) {
-        setUnverifiedEmail(email.trim().toLowerCase());
-      }
+      setErrorMessage(err.message || 'Failed to dispatch one-time code.');
     }
   };
 
-  const handleResendFromLogin = async () => {
-    if (!unverifiedEmail || resendCooldown > 0 || isResending) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
 
-    setIsResending(true);
-    const client = getSupabaseClient();
-    if (!client) return;
+    setStatus('loading');
+    setErrorMessage(null);
 
-    const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback`
-      : undefined;
+    try {
+      if (authMethod === 'otp') {
+        if (!otpSent) {
+          await handleSendOtp();
+          return;
+        }
+        if (!otpCode || otpCode.length < 6) {
+          setStatus('error');
+          setErrorMessage('Please enter the 6-digit verification code.');
+          return;
+        }
 
-    const { error } = await client.auth.resend({
-      type: 'signup',
-      email: unverifiedEmail,
-      options: { emailRedirectTo: redirectUrl },
-    });
-
-    setIsResending(false);
-    if (!error) {
-      setResendSuccess(true);
-      setResendCooldown(60);
-      const timer = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
+        const persona = await signInWithOtp({ email, otp: otpCode, purpose: 'login' });
+        setStatus('success');
+        setTimeout(() => {
+          if (redirectParam) {
+            router.push(redirectParam);
+          } else if (persona.role === 'hotel_manager' || persona.role === 'hotel_owner') {
+            router.push('/hotel-admin');
+          } else if (persona.role === 'super_admin') {
+            router.push('/super-admin');
+          } else {
+            router.push('/guest');
           }
-          return prev - 1;
-        });
-      }, 1000);
+        }, 500);
+      } else {
+        if (!password) {
+          setStatus('error');
+          setErrorMessage('Please enter your password.');
+          return;
+        }
+
+        const persona = await signIn(email, password);
+        setStatus('success');
+        setTimeout(() => {
+          if (redirectParam) {
+            router.push(redirectParam);
+          } else if (persona.role === 'hotel_manager' || persona.role === 'hotel_owner') {
+            router.push('/hotel-admin');
+          } else if (persona.role === 'super_admin') {
+            router.push('/super-admin');
+          } else {
+            router.push('/guest');
+          }
+        }, 500);
+      }
+    } catch (err: any) {
+      setStatus('error');
+      setErrorMessage(err.message || 'Unable to sign in. Please verify your credentials.');
     }
   };
 
@@ -105,8 +119,43 @@ function LoginContent() {
           Sign In to HotelStay
         </h1>
         <p className="text-xs text-stone-500 leading-relaxed">
-          Access your member reservations, private hotel rates, and profile.
+          Access your member reservations, private hotel rates, and PMS control center.
         </p>
+      </div>
+
+      {/* Auth Method Switcher */}
+      <div className="grid grid-cols-2 p-1 rounded-2xl bg-stone-100 text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMethod('password');
+            setErrorMessage(null);
+            setOtpSent(false);
+          }}
+          className={`py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            authMethod === 'password'
+              ? 'bg-white text-stone-900 shadow-xs font-bold'
+              : 'text-stone-500 hover:text-stone-900'
+          }`}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          <span>Password</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMethod('otp');
+            setErrorMessage(null);
+          }}
+          className={`py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            authMethod === 'otp'
+              ? 'bg-[#C5A880] text-black shadow-xs font-bold'
+              : 'text-stone-500 hover:text-stone-900'
+          }`}
+        >
+          <KeyRound className="w-3.5 h-3.5" />
+          <span>One-Time Code (OTP)</span>
+        </button>
       </div>
 
       <div className="space-y-3 pt-1">
@@ -123,66 +172,89 @@ function LoginContent() {
           disabled={status === 'loading'}
         />
 
-        <div className="space-y-1">
-          <Input
-            label="Password"
-            type={revealPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            placeholder="••••••••••••"
-            required
-            leftIcon={<Lock />}
-            rightIcon={
-              <button
-                type="button"
-                onClick={() => setRevealPassword((prev) => !prev)}
-                aria-label={revealPassword ? 'Hide password' : 'Show password'}
-                className="text-stone-400 outline-none transition-colors hover:text-stone-700 cursor-pointer"
+        {authMethod === 'password' ? (
+          <div className="space-y-1">
+            <Input
+              label="Password"
+              type={revealPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••••••"
+              required
+              leftIcon={<Lock />}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setRevealPassword((prev) => !prev)}
+                  aria-label={revealPassword ? 'Hide password' : 'Show password'}
+                  className="text-stone-400 outline-none transition-colors hover:text-stone-700 cursor-pointer"
+                >
+                  {revealPassword ? <EyeOff /> : <Eye />}
+                </button>
+              }
+              value={password}
+              onChange={setPassword}
+              disabled={status === 'loading'}
+            />
+            <div className="flex justify-end pt-1">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-stone-500 hover:text-[#141413] underline font-medium"
               >
-                {revealPassword ? <EyeOff /> : <Eye />}
-              </button>
-            }
-            value={password}
-            onChange={setPassword}
-            disabled={status === 'loading'}
-          />
-          <div className="flex justify-end pt-1">
-            <Link
-              href="/forgot-password"
-              className="text-xs text-stone-500 hover:text-[#141413] underline font-medium"
-            >
-              Forgot password?
-            </Link>
+                Forgot password?
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-2">
+            {otpSent ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-stone-700">
+                    Enter 6-Digit Code
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className="text-[11px] text-[#AF8F64] font-semibold hover:underline cursor-pointer"
+                  >
+                    Resend Code
+                  </button>
+                </div>
+                <Input
+                  label=""
+                  type="text"
+                  placeholder="123456"
+                  required
+                  leftIcon={<KeyRound />}
+                  value={otpCode}
+                  onChange={(val) => setOtpCode(val.replace(/\D/g, ''))}
+                  disabled={status === 'loading'}
+                />
+                {devOtpCode && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                    <span>Dev Security Code: <strong>{devOtpCode}</strong></span>
+                    <span className="text-[10px] text-amber-700">Stored in Supabase DB</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E8E2D8] text-xs text-stone-600 space-y-1">
+                <div className="font-semibold text-stone-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#C5A880]" />
+                  Passwordless System OTP
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  Click below to generate a 6-digit verification code stored in Supabase and dispatched to your email.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {errorMessage && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 font-medium leading-relaxed space-y-2">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 font-medium leading-relaxed">
           <p>{errorMessage}</p>
-          {unverifiedEmail && (
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleResendFromLogin}
-                disabled={resendCooldown > 0 || isResending}
-                className="inline-flex items-center gap-1.5 font-bold text-red-900 underline hover:text-red-950 cursor-pointer disabled:opacity-60"
-              >
-                <RefreshCw className={`w-3 h-3 ${isResending ? 'animate-spin' : ''}`} />
-                <span>
-                  {isResending
-                    ? 'Resending...'
-                    : resendCooldown > 0
-                    ? `Resend link (${resendCooldown}s)`
-                    : 'Resend Verification Link'}
-                </span>
-              </button>
-              {resendSuccess && (
-                <p className="text-[11px] text-emerald-800 font-semibold mt-1">
-                  ✓ Verification link re-sent to your inbox.
-                </p>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -190,12 +262,16 @@ function LoginContent() {
         type="submit"
         size="lg"
         state={status}
-        loadingText="Signing in..."
-        successText="Signed in"
+        loadingText="Authenticating with NextAuth..."
+        successText="Authenticated"
         errorText="Try again"
         className="w-full mt-2"
       >
-        Sign In
+        {authMethod === 'otp' && !otpSent
+          ? 'Send One-Time Code'
+          : authMethod === 'otp'
+          ? 'Verify Code & Sign In'
+          : 'Sign In'}
       </StatefulButton>
 
       <div className="text-center text-xs text-stone-500 pt-2 border-t border-stone-100">
@@ -233,7 +309,7 @@ export default function LoginPage() {
         </Link>
         <div className="flex items-center gap-1.5 mt-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#C5A880]">
           <Sparkles className="w-3 h-3" />
-          <span>Member Sign In</span>
+          <span>NextAuth Authentication</span>
         </div>
       </div>
 
@@ -246,7 +322,7 @@ export default function LoginPage() {
       <div className="max-w-md mx-auto w-full text-center mt-8 space-y-2 z-10">
         <div className="flex items-center justify-center gap-2 text-xs text-stone-500">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Secure authentication powered by Supabase</span>
+          <span>NextAuth Session · Supabase Database Storage</span>
         </div>
         <div className="flex items-center justify-center gap-4 text-xs text-stone-400">
           <Link href="/terms" className="hover:text-stone-700 underline">

@@ -10,7 +10,7 @@ import { Building2, ShieldCheck, Sparkles, UserCheck, ArrowRight, Lock, Mail, Ph
 
 export default function PartnerSignUpPage() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, sendOtp } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -53,61 +53,26 @@ export default function PartnerSignUpPage() {
       const cleanEmail = email.trim().toLowerCase();
       const cleanName = fullName.trim();
 
-      const client = getSupabaseClient();
-      if (client) {
-        const redirectUrl = typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback?next=/partner/onboard`
-          : undefined;
-
-        const { data, error } = await client.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: {
-              full_name: cleanName,
-              phone: phone.trim(),
-              role,
-            },
-            emailRedirectTo: redirectUrl,
-          },
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        // Call server route for transactional email (Resend / Brevo fallback)
-        try {
-          await fetch('/api/auth/send-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: cleanEmail,
-              name: cleanName,
-              redirectUrl,
-            }),
-          });
-        } catch {
-          // non-blocking fallback
-        }
-
-        if (data?.user && !data.session) {
-          router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}&partner=true`);
-          return;
-        }
-      }
-
-      // Context fallback sign up
       await signUp({
         name: cleanName,
         email: cleanEmail,
         password,
         role,
+        phone: phone.trim(),
       });
 
-      router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}&partner=true`);
+      // Dispatch verification code
+      const otpRes = await sendOtp({
+        email: cleanEmail,
+        purpose: 'verify_email',
+        name: cleanName,
+        role,
+      });
+
+      const devParam = otpRes.devCode ? `&devCode=${encodeURIComponent(otpRes.devCode)}` : '';
+      router.push(`/auth/verify-email?email=${encodeURIComponent(cleanEmail)}&partner=true${devParam}`);
     } catch (err: any) {
-      const msg = mapSupabaseAuthError(err);
+      const msg = err.message || 'Unable to register partner account. Please verify your details.';
       setFormError(msg);
     } finally {
       setLoading(false);

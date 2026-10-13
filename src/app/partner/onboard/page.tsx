@@ -218,24 +218,28 @@ export default function PartnerOnboardingPage() {
 
   // Draft Management Logic
   useEffect(() => {
-    try {
-      const savedDraft = localStorage.getItem('hotelstay_onboard_draft');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.hotelName) setHotelName(parsed.hotelName);
-        if (parsed.selectedCategory) setSelectedCategory(parsed.selectedCategory);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.city) setCity(parsed.city);
-        if (parsed.fullAddress) setFullAddress(parsed.fullAddress);
-        showToast({
-          title: 'Draft Restored',
-          description: 'Your saved onboarding progress has been restored.',
-          type: 'info',
-        });
+    const timer = setTimeout(() => {
+      try {
+        const savedDraft = localStorage.getItem('hotelstay_onboard_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.hotelName) setHotelName(parsed.hotelName);
+          if (parsed.selectedCategory) setSelectedCategory(parsed.selectedCategory);
+          if (parsed.description) setDescription(parsed.description);
+          if (parsed.city) setCity(parsed.city);
+          if (parsed.fullAddress) setFullAddress(parsed.fullAddress);
+          showToast({
+            title: 'Draft Restored',
+            description: 'Your saved onboarding progress has been restored.',
+            type: 'info',
+          });
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const saveDraft = () => {

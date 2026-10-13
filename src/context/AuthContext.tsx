@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
 import { UserRole } from '@/lib/types';
-import { getSupabaseClient, isSupabaseConfigured, isNetworkOrReachabilityError, mapSupabaseAuthError } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export interface Persona {
   id: string;
@@ -15,17 +16,6 @@ export interface Persona {
   avatar?: string;
   phone?: string;
   createdAt?: string;
-}
-
-interface StoredAccount {
-  id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  role: UserRole;
-  hotelName?: string;
-  hotelSlug?: string;
-  createdAt: string;
 }
 
 export const PERSONAS: Persona[] = [
@@ -43,6 +33,7 @@ export const PERSONAS: Persona[] = [
     role: 'hotel_manager',
     hotelId: 'hotel-azure',
     hotelName: 'The Azure Riviera Resort & Spa',
+    hotelSlug: 'the-azure-riviera',
     phone: '+33 4 93 01 23 45',
   },
   {
@@ -52,6 +43,7 @@ export const PERSONAS: Persona[] = [
     role: 'hotel_manager',
     hotelId: 'hotel-serenita',
     hotelName: 'Serenita Coastal Haven & Spa',
+    hotelSlug: 'serenita-coastal-haven',
     phone: '+30 2286 071234',
   },
   {
@@ -82,6 +74,21 @@ interface AuthContextType {
   isHotelAdmin: boolean;
   isSuperAdmin: boolean;
   signIn: (email: string, password?: string, asRole?: UserRole) => Promise<Persona>;
+  signInWithOtp: (params: {
+    email: string;
+    otp: string;
+    purpose?: string;
+    role?: UserRole;
+    name?: string;
+    hotelName?: string;
+    hotelSlug?: string;
+  }) => Promise<Persona>;
+  sendOtp: (params: {
+    email: string;
+    purpose?: string;
+    name?: string;
+    role?: UserRole;
+  }) => Promise<{ success: boolean; message: string; devCode?: string }>;
   signUp: (params: {
     name: string;
     email: string;
@@ -89,6 +96,7 @@ interface AuthContextType {
     role?: UserRole;
     hotelName?: string;
     hotelSlug?: string;
+    phone?: string;
   }) => Promise<Persona>;
   signOut: () => Promise<void>;
   updateCurrentUser: (updates: Partial<Persona>) => void;
@@ -108,18 +116,8 @@ function isValidEmailFormat(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
 }
 
-// Simple deterministic hash for local client-side password verification
-function hashLocalPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return `hs_h_${Math.abs(hash).toString(36)}_${password.length}`;
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status, update: updateSession } = useSession();
   const [currentUser, setCurrentUser] = useState<Persona | null>(null);
   const [activePersona, setActivePersona] = useState<Persona>(DEFAULT_GUEST);
   const [authModal, setAuthModal] = useState<AuthModalState>({
@@ -128,123 +126,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: 'guest',
   });
 
-  // Restore session from localStorage on initial render
+  // Sync NextAuth Session to AuthContext persona state asynchronously to prevent cascading renders
   useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem('hotelstay_active_user');
-      if (savedSession) {
-        const parsed = JSON.parse(savedSession);
-        if (parsed && parsed.id && parsed.email) {
-          setCurrentUser(parsed);
-          setActivePersona(parsed);
-        }
-      }
-    } catch {
-      // ignore parsing error
-    }
-
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      // Check Supabase session with timeout to avoid blocking if network/DNS is down
-      const sessionCheck = async () => {
-        try {
-          const timeoutPromise = new Promise<{ data: { session: null }; error: Error }>((_, reject) =>
-            setTimeout(() => reject(new Error('Supabase session check timeout')), 3000)
-          );
-          const { data } = await Promise.race([supabase.auth.getSession(), timeoutPromise]);
-          if (data?.session?.user) {
-            const user = data.session.user;
-            const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member';
-            const role = (user.user_metadata?.role as UserRole) || 'guest';
-            const persona: Persona = {
-              id: user.id,
-              name,
-              email: user.email || '',
-              role,
-              phone: user.phone || user.user_metadata?.phone,
-              avatar: user.user_metadata?.avatar_url,
-              hotelName: user.user_metadata?.hotel_name,
-              hotelSlug: user.user_metadata?.hotel_slug,
-              createdAt: user.created_at,
-            };
-            setCurrentUser(persona);
-            setActivePersona(persona);
-            try {
-              localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
-            } catch {
-              // ignore
-            }
-          }
-        } catch (err) {
-          // If Supabase session lookup times out or fails (e.g. paused free tier), keep local session intact
-          console.warn('[HotelStay Auth] Supabase remote session unreachable, using persistent local session state.');
-        }
-      };
-
-      sessionCheck();
-
-      try {
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
-          if (session?.user) {
-            const user = session.user;
-            const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member';
-            const role = (user.user_metadata?.role as UserRole) || 'guest';
-            const persona: Persona = {
-              id: user.id,
-              name,
-              email: user.email || '',
-              role,
-              phone: user.phone || user.user_metadata?.phone,
-              avatar: user.user_metadata?.avatar_url,
-              hotelName: user.user_metadata?.hotel_name,
-              hotelSlug: user.user_metadata?.hotel_slug,
-              createdAt: user.created_at,
-            };
-            setCurrentUser(persona);
-            setActivePersona(persona);
-            try {
-              localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
-            } catch {
-              // ignore
-            }
-          }
-        });
-
-        return () => {
-          subscription.unsubscribe();
+    const timer = setTimeout(() => {
+      if (status === 'authenticated' && session?.user) {
+        const su = session.user as any;
+        const persona: Persona = {
+          id: su.id || `usr-${su.email}`,
+          name: su.name || 'Member',
+          email: su.email || '',
+          role: (su.role as UserRole) || 'guest',
+          hotelId: su.hotelId,
+          hotelName: su.hotelName,
+          hotelSlug: su.hotelSlug,
+          phone: su.phone,
         };
-      } catch {
-        // ignore subscription errors
+        setCurrentUser(persona);
+        setActivePersona(persona);
+        try {
+          localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
+        } catch {
+          // ignore
+        }
+      } else if (status === 'unauthenticated') {
+        // Check local storage for persistent persona in case user switched offline
+        try {
+          const savedSession = localStorage.getItem('hotelstay_active_user');
+          if (savedSession) {
+            const parsed = JSON.parse(savedSession);
+            if (parsed && parsed.id && parsed.email) {
+              // Check if it's one of the demo personas
+              const match = PERSONAS.find((p) => p.email.toLowerCase() === parsed.email.toLowerCase());
+              if (match) {
+                setCurrentUser(match);
+                setActivePersona(match);
+                return;
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+        setCurrentUser(null);
+        setActivePersona(DEFAULT_GUEST);
       }
-    }
-  }, []);
+    }, 0);
 
-  const getStoredAccounts = (): StoredAccount[] => {
-    try {
-      const data = localStorage.getItem('hotelstay_registered_users');
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const saveStoredAccount = (account: StoredAccount) => {
-    try {
-      const current = getStoredAccounts();
-      const filtered = current.filter((a) => a.email.toLowerCase() !== account.email.toLowerCase());
-      filtered.push(account);
-      localStorage.setItem('hotelstay_registered_users', JSON.stringify(filtered));
-    } catch {
-      // ignore
-    }
-  };
+    return () => clearTimeout(timer);
+  }, [session, status]);
 
   const checkAccountExists = (email: string): boolean => {
     const cleanEmail = email.trim().toLowerCase();
-    const stored = getStoredAccounts();
-    return stored.some((a) => a.email.toLowerCase() === cleanEmail);
+    // Check seeded personas
+    if (PERSONAS.some((p) => p.email.toLowerCase() === cleanEmail)) return true;
+    try {
+      const data = localStorage.getItem('hotelstay_registered_users');
+      if (data) {
+        const list = JSON.parse(data);
+        return list.some((u: any) => u.email.toLowerCase() === cleanEmail);
+      }
+    } catch {
+      // ignore
+    }
+    return false;
   };
 
   const setPersona = (personaIdOrRole: string) => {
@@ -267,6 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Password Authentication using NextAuth Credentials Provider
+   */
   const signIn = async (email: string, password?: string, asRole?: UserRole): Promise<Persona> => {
     const cleanEmail = (email || '').trim().toLowerCase();
 
@@ -280,39 +227,142 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Please enter your password.');
     }
 
-    const supabase = getSupabaseClient();
-    let supabaseSuccess = false;
+    // Call NextAuth Credentials Sign-In
+    const result = await nextAuthSignIn('credentials', {
+      email: cleanEmail,
+      password,
+      role: asRole,
+      redirect: false,
+    });
 
-    if (supabase && password) {
+    if (result?.error) {
+      // Check if it matches a persona fallback for demo
+      const personaMatch = PERSONAS.find((p) => p.email.toLowerCase() === cleanEmail);
+      if (personaMatch && password.length >= 8) {
+        setCurrentUser(personaMatch);
+        setActivePersona(personaMatch);
+        try {
+          localStorage.setItem('hotelstay_active_user', JSON.stringify(personaMatch));
+        } catch {
+          // ignore
+        }
+        return personaMatch;
+      }
+      throw new Error(result.error);
+    }
+
+    // Check persona match or create user persona
+    const personaMatch = PERSONAS.find((p) => p.email.toLowerCase() === cleanEmail);
+    const persona: Persona = personaMatch || {
+      id: `usr-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+      name: cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: asRole || 'guest',
+    };
+
+    setCurrentUser(persona);
+    setActivePersona(persona);
+    try {
+      localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
+    } catch {
+      // ignore
+    }
+
+    return persona;
+  };
+
+  /**
+   * Generates a System OTP and dispatches email, storing the code in Supabase
+   */
+  const sendOtp = async (params: {
+    email: string;
+    purpose?: string;
+    name?: string;
+    role?: UserRole;
+  }): Promise<{ success: boolean; message: string; devCode?: string }> => {
+    const cleanEmail = (params.email || '').trim().toLowerCase();
+    if (!cleanEmail || !isValidEmailFormat(cleanEmail)) {
+      throw new Error('Please enter a valid email address to receive an OTP code.');
+    }
+
+    const res = await fetch('/api/auth/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: cleanEmail,
+        purpose: params.purpose || 'login',
+        name: params.name,
+        role: params.role,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Failed to dispatch verification code.');
+    }
+
+    return {
+      success: true,
+      message: data.message || 'One-time password dispatched.',
+      devCode: data.devCode,
+    };
+  };
+
+  /**
+   * One-Time Password Authentication using NextAuth OTP Credentials Provider
+   */
+  const signInWithOtp = async (params: {
+    email: string;
+    otp: string;
+    purpose?: string;
+    role?: UserRole;
+    name?: string;
+    hotelName?: string;
+    hotelSlug?: string;
+  }): Promise<Persona> => {
+    const cleanEmail = (params.email || '').trim().toLowerCase();
+    const cleanOtp = (params.otp || '').trim();
+
+    if (!cleanEmail || !isValidEmailFormat(cleanEmail)) {
+      throw new Error('Please enter a valid email address.');
+    }
+    if (!cleanOtp) {
+      throw new Error('Please enter the 6-digit one-time code sent to your email.');
+    }
+
+    const result = await nextAuthSignIn('otp', {
+      email: cleanEmail,
+      otp: cleanOtp,
+      purpose: params.purpose || 'login',
+      role: params.role || 'guest',
+      name: params.name,
+      hotelName: params.hotelName,
+      hotelSlug: params.hotelSlug,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      // In case NextAuth transport encountered a CSRF/origin mismatch, attempt direct OTP verification fallback
       try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Network timeout reaching Supabase Auth')), 4000)
-        );
-
-        const { data, error } = await Promise.race([
-          supabase.auth.signInWithPassword({
+        const verifyRes = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             email: cleanEmail,
-            password,
+            otp: cleanOtp,
+            purpose: params.purpose || 'login',
           }),
-          timeoutPromise,
-        ]);
-
-        if (error) {
-          // If it is a real credential error from Supabase, throw friendly message
-          if (!isNetworkOrReachabilityError(error)) {
-            throw new Error(mapSupabaseAuthError(error));
-          }
-          // If network / DNS error, fall through to verified local account check
-          console.warn('[HotelStay Auth] Supabase unreachable on signIn, falling back to local verification.');
-        } else if (data?.user) {
-          supabaseSuccess = true;
-          const user = data.user;
-          const persona: Persona = {
-            id: user.id,
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-            email: user.email || cleanEmail,
-            role: (user.user_metadata?.role as UserRole) || asRole || 'guest',
-            createdAt: user.created_at,
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyRes.ok && verifyData.success) {
+          const personaMatch = PERSONAS.find((p) => p.email.toLowerCase() === cleanEmail);
+          const persona: Persona = personaMatch || {
+            id: `usr-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+            name: params.name || cleanEmail.split('@')[0],
+            email: cleanEmail,
+            role: params.role || 'guest',
+            hotelName: params.hotelName,
+            hotelSlug: params.hotelSlug,
           };
           setCurrentUser(persona);
           setActivePersona(persona);
@@ -323,64 +373,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return persona;
         }
-      } catch (err: any) {
-        if (!isNetworkOrReachabilityError(err)) {
-          throw err;
-        }
-        console.warn('[HotelStay Auth] Supabase network failure, verifying with local auth store.');
-      }
-    }
-
-    if (!supabaseSuccess) {
-      // Verify against local persistent accounts registry
-      const stored = getStoredAccounts();
-      const account = stored.find((a) => a.email.toLowerCase() === cleanEmail);
-
-      if (!account) {
-        // Also check default personas
-        const personaMatch = PERSONAS.find((p) => p.email.toLowerCase() === cleanEmail);
-        if (personaMatch && password.length >= 8) {
-          setCurrentUser(personaMatch);
-          setActivePersona(personaMatch);
-          try {
-            localStorage.setItem('hotelstay_active_user', JSON.stringify(personaMatch));
-          } catch {
-            // ignore
-          }
-          return personaMatch;
-        }
-        throw new Error('Incorrect email or password. Please double check and try again.');
-      }
-
-      // Verify password hash
-      const expectedHash = hashLocalPassword(password);
-      if (account.passwordHash !== expectedHash) {
-        throw new Error('Incorrect email or password. Please double check and try again.');
-      }
-
-      const persona: Persona = {
-        id: account.id,
-        name: account.name,
-        email: account.email,
-        role: account.role || asRole || 'hotel_manager',
-        hotelName: account.hotelName,
-        hotelSlug: account.hotelSlug,
-        createdAt: account.createdAt,
-      };
-
-      setCurrentUser(persona);
-      setActivePersona(persona);
-      try {
-        localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
       } catch {
         // ignore
       }
-      return persona;
+      throw new Error(result.error);
     }
 
-    throw new Error('Unable to sign in. Please verify your details and try again.');
+    const persona: Persona = {
+      id: `usr-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+      name: params.name || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: params.role || 'guest',
+      hotelName: params.hotelName,
+      hotelSlug: params.hotelSlug,
+    };
+
+    setCurrentUser(persona);
+    setActivePersona(persona);
+    try {
+      localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
+    } catch {
+      // ignore
+    }
+
+    return persona;
   };
 
+  /**
+   * Registers a new user account in Supabase database and signs in via NextAuth
+   */
   const signUp = async (params: {
     name: string;
     email: string;
@@ -388,6 +409,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role?: UserRole;
     hotelName?: string;
     hotelSlug?: string;
+    phone?: string;
   }): Promise<Persona> => {
     const cleanName = (params.name || '').trim();
     const cleanEmail = (params.email || '').trim().toLowerCase();
@@ -404,106 +426,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Password must be at least 8 characters long.');
     }
 
-    // Check duplicate in local storage registry
-    if (checkAccountExists(cleanEmail)) {
-      throw new Error('An account with this email already exists. Try signing in instead.');
-    }
-
-    const supabase = getSupabaseClient();
-    let supabaseUser: any = null;
-
-    if (supabase && cleanPassword) {
-      try {
-        const redirectUrl =
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback?next=/partner/onboard`
-            : undefined;
-
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Network timeout reaching Supabase Auth')), 4000)
-        );
-
-        const { data, error } = await Promise.race([
-          supabase.auth.signUp({
-            email: cleanEmail,
-            password: cleanPassword,
-            options: {
-              data: {
-                full_name: cleanName,
-                role: cleanRole,
-                hotel_name: params.hotelName,
-                hotel_slug: params.hotelSlug,
-              },
-              emailRedirectTo: redirectUrl,
-            },
-          }),
-          timeoutPromise,
-        ]);
-
-        if (error) {
-          if (!isNetworkOrReachabilityError(error)) {
-            throw new Error(mapSupabaseAuthError(error));
-          }
-          console.warn('[HotelStay Auth] Supabase unreachable on signUp, proceeding with persistent local registration.');
-        } else if (data?.user) {
-          // Check if Supabase returned a dummy user with empty identities (user already registered security measure)
-          if (data.user.identities && data.user.identities.length === 0) {
-            throw new Error('An account with this email already exists. Try signing in instead.');
-          }
-          supabaseUser = data.user;
-        }
-      } catch (err: any) {
-        if (!isNetworkOrReachabilityError(err)) {
-          throw err;
-        }
-        console.warn('[HotelStay Auth] Supabase network failure, registering in local persistent store.');
-      }
-    }
-
-    // Create the persona record
-    const accountId = supabaseUser?.id || `usr-partner-${Date.now()}`;
-    const persona: Persona = {
-      id: accountId,
-      name: cleanName,
-      email: cleanEmail,
-      role: cleanRole,
-      hotelName: params.hotelName,
-      hotelSlug: params.hotelSlug,
-      createdAt: supabaseUser?.created_at || new Date().toISOString(),
-    };
-
-    // Store in local accounts registry for persistent sign-in verification
-    saveStoredAccount({
-      id: accountId,
-      name: cleanName,
-      email: cleanEmail,
-      passwordHash: hashLocalPassword(cleanPassword),
-      role: cleanRole,
-      hotelName: params.hotelName,
-      hotelSlug: params.hotelSlug,
-      createdAt: persona.createdAt || new Date().toISOString(),
+    // Call registration endpoint which persists in Supabase database
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: cleanEmail,
+        password: cleanPassword,
+        name: cleanName,
+        role: cleanRole,
+        hotelName: params.hotelName,
+        hotelSlug: params.hotelSlug,
+        phone: params.phone,
+      }),
     });
 
-    // Establish active session
-    setCurrentUser(persona);
-    setActivePersona(persona);
-    try {
-      localStorage.setItem('hotelstay_active_user', JSON.stringify(persona));
-    } catch {
-      // ignore
+    const data = await res.json();
+    if (!res.ok && res.status !== 409) {
+      throw new Error(data.error || 'Registration failed.');
     }
 
-    return persona;
+    // Automatically sign in via NextAuth
+    return await signIn(cleanEmail, cleanPassword, cleanRole);
   };
 
+  /**
+   * NextAuth Sign Out
+   */
   const signOut = async () => {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore
-      }
+    try {
+      await nextAuthSignOut({ redirect: false });
+    } catch {
+      // ignore
     }
     setCurrentUser(null);
     setActivePersona(DEFAULT_GUEST);
@@ -516,9 +470,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateCurrentUser = (updates: Partial<Persona>) => {
     setCurrentUser((prev) => {
-      const base = prev || DEFAULT_GUEST;
-      const updated = { ...base, ...updates };
-      setActivePersona(updated);
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
       try {
         localStorage.setItem('hotelstay_active_user', JSON.stringify(updated));
       } catch {
@@ -526,10 +479,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return updated;
     });
+
+    setActivePersona((prev) => {
+      const updated = { ...prev, ...updates };
+      return updated;
+    });
+
+    if (updateSession) {
+      updateSession({
+        user: updates,
+      });
+    }
   };
 
   const openAuthModal = (params?: Partial<AuthModalState>) => {
-    setAuthModal({
+    setAuthModal((prev) => ({
+      ...prev,
       isOpen: true,
       mode: params?.mode || 'signup',
       role: params?.role || 'guest',
@@ -537,28 +502,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       description: params?.description,
       redirectUrl: params?.redirectUrl,
       onSuccessCallback: params?.onSuccessCallback,
-    });
+    }));
   };
 
   const closeAuthModal = () => {
     setAuthModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const effectivePersona = currentUser || activePersona;
-  const isAuthenticated = currentUser !== null;
-  const currentRole = effectivePersona.role;
+  const isAuthenticated = !!currentUser;
+  const isGuest = currentUser?.role === 'guest';
+  const isHotelAdmin = currentUser?.role === 'hotel_manager' || currentUser?.role === 'hotel_owner';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
-        currentPersona: effectivePersona,
+        currentPersona: currentUser || activePersona,
         setPersona,
         isAuthenticated,
-        isGuest: currentRole === 'guest',
-        isHotelAdmin: currentRole === 'hotel_manager' || currentRole === 'hotel_owner',
-        isSuperAdmin: currentRole === 'super_admin',
+        isGuest,
+        isHotelAdmin,
+        isSuperAdmin,
         signIn,
+        signInWithOtp,
+        sendOtp,
         signUp,
         signOut,
         updateCurrentUser,

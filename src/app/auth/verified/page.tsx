@@ -6,9 +6,27 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 
+import { useAuth } from '@/context/AuthContext';
+
 function VerifiedContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
+  const { currentUser, isAuthenticated } = useAuth();
+
+  const isPartner =
+    currentUser?.role === 'hotel_manager' || currentUser?.role === 'hotel_owner';
+  const destinationHref = isAuthenticated
+    ? isPartner
+      ? '/partner/onboard'
+      : '/guest'
+    : email
+    ? `/login?email=${encodeURIComponent(email)}`
+    : '/login';
+  const buttonLabel = isAuthenticated
+    ? isPartner
+      ? 'Go to Property Onboarding'
+      : 'Go to Member Dashboard'
+    : 'Continue to Sign In';
 
   return (
     <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200/90 shadow-2xl p-6 sm:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
@@ -26,7 +44,7 @@ function VerifiedContent() {
           Email Verified Successfully
         </h1>
         <p className="text-sm text-stone-500 leading-relaxed max-w-sm mx-auto">
-          Your HotelStay account has been verified.
+          Your HotelStay account has been securely verified.
         </p>
       </div>
 
@@ -44,28 +62,22 @@ function VerifiedContent() {
           <div className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
             ✓
           </div>
-          <span>Your email address has been securely verified by Supabase.</span>
+          <span>Your email address has been verified and registered.</span>
         </div>
         <div className="flex items-start gap-2.5">
           <div className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
             ✓
           </div>
-          <span>Your HotelStay Privé membership is now fully activated.</span>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <div className="w-5 h-5 rounded-full bg-[#C5A880] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-            →
-          </div>
-          <span>Sign in below to start exploring curated luxury stays.</span>
+          <span>Your HotelStay Privé membership is active.</span>
         </div>
       </div>
 
-      {/* Continue to Login Button */}
+      {/* Continue Action Button */}
       <Link
-        href={email ? `/login?email=${encodeURIComponent(email)}` : '/login'}
+        href={destinationHref}
         className="w-full py-3.5 px-6 rounded-2xl bg-[#141413] text-white text-xs font-bold uppercase tracking-[0.15em] flex items-center justify-center gap-2.5 hover:bg-black transition-all shadow-lg hover:shadow-xl group"
       >
-        <span>Continue to Login</span>
+        <span>{buttonLabel}</span>
         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
 

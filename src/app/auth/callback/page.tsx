@@ -4,79 +4,58 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getSupabaseClient, mapSupabaseAuthError } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { Loader2, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signInWithOtp } = useAuth();
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
     const handleAuthCallback = async () => {
-      const client = getSupabaseClient();
-      if (!client) {
-        setStatus('error');
-        setErrorMessage('Supabase is not configured.');
-        return;
-      }
-
-      // Check if code or token hash is in query
-      const code = searchParams.get('code');
-      const tokenHash = searchParams.get('token_hash');
-      const type = searchParams.get('type') as any;
-      const next = searchParams.get('next') || '/guest';
+      const code = searchParams.get('code') || searchParams.get('otp');
+      const email = searchParams.get('email') || '';
+      const next = searchParams.get('next') || '';
 
       try {
-        if (code) {
-          const { error } = await client.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-        } else if (tokenHash && type) {
-          const { error } = await client.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: type || 'email',
-          });
-          if (error) throw error;
-        } else {
-          // Check if session was already picked up from URL hash by Supabase client
-          const { data: { session }, error } = await client.auth.getSession();
-          if (error) throw error;
-          if (!session) {
-            // Wait brief moment in case hash is being parsed
-            await new Promise((r) => setTimeout(r, 800));
-            const { data: { session: retrySession } } = await client.auth.getSession();
-            if (!retrySession) {
-              // Redirect to guest or login
-              router.push('/login');
-              return;
-            }
+        if (code && email) {
+          // Verify code and establish session
+          await signInWithOtp({ email, otp: code, purpose: 'verify_email' });
+        } else if (!code && !email) {
+          // If neither is passed, check if a Supabase hash is in the URL (for legacy links)
+          const hash = typeof window !== 'undefined' ? window.location.hash : '';
+          if (!hash) {
+            throw new Error('No verification code or email provided in the link.');
           }
         }
 
+        if (!isMounted) return;
         setStatus('success');
-
-        // Get the verified user's email to pass to the verified page
-        const { data: { user } } = await client.auth.getUser();
-        const verifiedEmail = user?.email || '';
-
-        // Sign out so the user can explicitly log in from the verified page
-        // (the callback exchanged the code but we want the user to go through login)
-        await client.auth.signOut();
-
         setTimeout(() => {
-          router.push(
-            `/auth/verified${verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : ''}`
-          );
-        }, 1200);
+          if (next) {
+            router.push(next);
+          } else if (email) {
+            router.push(`/auth/verified?email=${encodeURIComponent(email)}`);
+          } else {
+            router.push('/guest');
+          }
+        }, 1000);
       } catch (err: any) {
+        if (!isMounted) return;
         setStatus('error');
-        setErrorMessage(mapSupabaseAuthError(err));
+        setErrorMessage(err.message || 'Verification failed. Please try again.');
       }
     };
 
     handleAuthCallback();
-  }, [router, searchParams]);
+    return () => {
+      isMounted = false;
+    };
+  }, [router, searchParams, signInWithOtp]);
 
   return (
     <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200/90 shadow-2xl p-8 text-center space-y-6">

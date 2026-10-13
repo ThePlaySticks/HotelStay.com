@@ -137,11 +137,11 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
   };
 
   const STEPS = [
-    { num: 1, label: 'Room' },
-    { num: 2, label: 'Guest Details' },
-    { num: 3, label: 'Preferences' },
-    { num: 4, label: 'Payment' },
-    { num: 5, label: 'Confirmation' },
+    { num: 1, label: 'Room', shortLabel: 'Room' },
+    { num: 2, label: 'Guest Details', shortLabel: 'Guest' },
+    { num: 3, label: 'Preferences', shortLabel: 'Extras' },
+    { num: 4, label: 'Payment', shortLabel: 'Pay' },
+    { num: 5, label: 'Confirmation', shortLabel: 'Done' },
   ];
 
   if (!hotel || !selectedRoom) {
@@ -169,7 +169,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Step Progress Bar */}
-        <div className="max-w-3xl mx-auto mb-10">
+        <div className="max-w-3xl mx-auto mb-10 px-2 sm:px-0">
           <div className="flex items-center justify-between relative">
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#E8E2D8] -translate-y-1/2 z-0" />
             {STEPS.map((step) => {
@@ -179,22 +179,23 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
               return (
                 <div key={step.num} className="relative z-10 flex flex-col items-center">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
                       isPassed
                         ? 'bg-emerald-700 text-white'
                         : isCurrent
-                        ? 'bg-[#141413] text-[#C5A880] ring-4 ring-[#C5A880]/30 shadow-md'
+                        ? 'bg-[#141413] text-[#C5A880] ring-3 sm:ring-4 ring-[#C5A880]/30 shadow-md'
                         : 'bg-white text-stone-400 border border-[#D5CCC0]'
                     }`}
                   >
-                    {isPassed ? <Check className="w-4 h-4" /> : step.num}
+                    {isPassed ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : step.num}
                   </div>
                   <span
-                    className={`text-[11px] font-semibold mt-1.5 uppercase tracking-wider ${
+                    className={`text-[9px] sm:text-[11px] font-semibold mt-1 uppercase tracking-wider text-center ${
                       isCurrent ? 'text-[#141413]' : 'text-stone-400'
                     }`}
                   >
-                    {step.label}
+                    <span className="sm:hidden">{step.shortLabel}</span>
+                    <span className="hidden sm:inline">{step.label}</span>
                   </span>
                 </div>
               );
@@ -279,7 +280,7 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                 <div className="pt-4 flex justify-end">
                   <button
                     onClick={() => setCurrentStep(2)}
-                    className="px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center gap-2 transition-transform hover:scale-105"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center justify-center gap-2 transition-transform hover:scale-105"
                   >
                     <span>Proceed to Guest Details</span>
                     <ArrowRight className="w-4 h-4 text-[#C5A880]" />
@@ -373,17 +374,17 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                   />
                 </div>
 
-                <div className="pt-4 flex items-center justify-between border-t border-[#F0EAE1]">
+                <div className="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-[#F0EAE1]">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(1)}
-                    className="text-xs font-semibold text-stone-600 hover:text-black"
+                    className="text-xs font-semibold text-stone-600 hover:text-black text-center py-2 sm:py-0"
                   >
                     ← Back to Room
                   </button>
                   <button
                     onClick={() => setCurrentStep(3)}
-                    className="px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center gap-2 transition-transform hover:scale-105"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center justify-center gap-2 transition-transform hover:scale-105"
                   >
                     <span>Proceed to Extras</span>
                     <ArrowRight className="w-4 h-4 text-[#C5A880]" />
@@ -440,17 +441,17 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                   })}
                 </div>
 
-                <div className="pt-4 flex items-center justify-between border-t border-[#F0EAE1]">
+                <div className="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-[#F0EAE1]">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="text-xs font-semibold text-stone-600 hover:text-black"
+                    className="text-xs font-semibold text-stone-600 hover:text-black text-center py-2 sm:py-0"
                   >
                     ← Back to Guest Details
                   </button>
                   <button
                     onClick={() => setCurrentStep(4)}
-                    className="px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center gap-2 transition-transform hover:scale-105"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#141413] hover:bg-black text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center justify-center gap-2 transition-transform hover:scale-105"
                   >
                     <span>Proceed to Payment</span>
                     <ArrowRight className="w-4 h-4 text-[#C5A880]" />
@@ -545,17 +546,17 @@ function BookingFlowContent({ params }: { params: Promise<{ slug: string }> }) {
                   </p>
                 </div>
 
-                <div className="pt-4 flex items-center justify-between border-t border-[#F0EAE1]">
+                <div className="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-[#F0EAE1]">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(3)}
-                    className="text-xs font-semibold text-stone-600 hover:text-black"
+                    className="text-xs font-semibold text-stone-600 hover:text-black text-center py-2 sm:py-0"
                   >
                     ← Back to Preferences
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center gap-2 transition-transform hover:scale-105 shadow-md"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs uppercase tracking-wider font-bold rounded-full flex items-center justify-center gap-2 transition-transform hover:scale-105 shadow-md"
                   >
                     <Lock className="w-4 h-4" />
                     <span>Authorize & Confirm ({hotel.currencySymbol}{grandTotal})</span>

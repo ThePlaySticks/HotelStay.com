@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -11,22 +11,20 @@ import {
   CalendarRange,
   BedDouble,
   Users,
-  UserCheck,
-  Sparkles,
   Settings,
   ArrowUpRight,
-  ArrowRight,
-  Shield,
-  Building2,
   Brush,
   Globe,
   LogOut,
+  Menu,
+  X,
 } from 'lucide-react';
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { currentUser, signOut } = useAuth();
   const { hotels } = useMarketplace();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Find active tenant hotel
   const currentHotel =
@@ -44,8 +42,8 @@ export function AdminSidebar() {
     { href: '/hotel-admin/settings', label: 'Hotel Identity Settings', icon: Settings },
   ];
 
-  return (
-    <aside className="w-64 bg-[#080A0F] text-white flex flex-col justify-between shrink-0 border-r border-white/10 min-h-screen">
+  const sidebarContent = (
+    <div className="flex flex-col justify-between h-full min-h-screen">
       <div>
         {/* Brand Header */}
         <div className="p-6 border-b border-white/10">
@@ -130,6 +128,48 @@ export function AdminSidebar() {
           </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Top Bar (Visible only on screens < md) */}
+      <div className="md:hidden sticky top-0 z-40 bg-[#080A0F] text-white border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="font-editorial text-lg font-bold tracking-tight text-white">
+            HOTELSTAY
+          </span>
+          <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-[#C5A880] border border-white/10">
+            PMS
+          </span>
+        </Link>
+
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:text-white"
+          aria-label="Toggle Navigation Menu"
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="relative z-10 w-72 max-w-[85vw] bg-[#080A0F] text-white flex flex-col justify-between border-r border-white/10 h-full overflow-y-auto">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop Fixed Aside (Visible on md+) */}
+      <aside className="hidden md:flex md:w-64 bg-[#080A0F] text-white flex-col justify-between shrink-0 border-r border-white/10 min-h-screen">
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
